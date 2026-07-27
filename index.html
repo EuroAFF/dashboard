@@ -303,8 +303,13 @@ function ioBlocks(io){
   const cost=(r)=>+r.cost_usd||0;
   return `<h3>Chat monitoring (${io.length})</h3><p class="muted">Per turn: user message, AI response, time, tokens, cost, model/mode.</p>`+io.map((r)=>{
     const um=r.user_message??r.input_text??"", ar=r.ai_response??r.output_text??"";
-    const dump=(r.user_message!=null&&(r.input_text||r.output_text))?`<details class="iod"><summary>full prompt + raw completion (debug)</summary><div class="iogrid"><div><div class="iol">INPUT</div><pre>${esc(r.input_text||"")}</pre></div><div><div class="iol">OUTPUT</div><pre>${esc(r.output_text||"")}</pre></div></div></details>`:"";
-    return `<div class="panel" style="border:1px solid var(--line);border-radius:12px;padding:12px;margin:8px 0"><div class="muted" style="font-size:12px;margin-bottom:6px"><b>${esc(r.kind||"chat")}</b> · ${esc(r.model||"—")} · in ${n(r.input_tokens)} / out ${n(r.output_tokens)} tok · ${usd6(cost(r))} · ${esc(r.ts||"")}</div><div class="chat"><div class="msg u"><div class="who">user message</div><div class="bubble">${esc(um)}</div></div><div class="msg a"><div class="who">AI response</div><div class="bubble">${esc(ar)}</div></div></div>${dump}</div>`;
+    // A card-only turn has no reply text. Newer rows carry a "[card response] …" summary + the card
+    // payload in output_text; older rows (logged before the proxy fix) captured neither, so the
+    // response is genuinely unrecoverable — label it rather than showing a blank bubble that reads
+    // as "the AI said nothing".
+    const arCell=ar.trim()!==""?esc(ar):`<span class="muted" style="font-style:italic">(card response — no text captured for this turn)</span>`;
+    const dump=(r.user_message!=null&&(r.input_text||r.output_text))?`<details class="iod"><summary>full prompt + raw completion / card payload (debug)</summary><div class="iogrid"><div><div class="iol">INPUT</div><pre>${esc(r.input_text||"")}</pre></div><div><div class="iol">OUTPUT</div><pre>${esc(r.output_text||"")}</pre></div></div></details>`:"";
+    return `<div class="panel" style="border:1px solid var(--line);border-radius:12px;padding:12px;margin:8px 0"><div class="muted" style="font-size:12px;margin-bottom:6px"><b>${esc(r.kind||"chat")}</b> · ${esc(r.model||"—")} · in ${n(r.input_tokens)} / out ${n(r.output_tokens)} tok · ${usd6(cost(r))} · ${esc(r.ts||"")}</div><div class="chat"><div class="msg u"><div class="who">user message</div><div class="bubble">${esc(um)}</div></div><div class="msg a"><div class="who">AI response</div><div class="bubble">${arCell}</div></div></div>${dump}</div>`;
   }).join("");
 }
 function sessionDetail(d){
