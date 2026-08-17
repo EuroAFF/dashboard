@@ -51,6 +51,11 @@
   .msg .who{font-size:11px;color:var(--muted);margin-bottom:3px;display:flex;gap:8px}.msg .ts{margin-left:auto}
   .bubble{padding:9px 12px;border-radius:12px;white-space:pre-wrap;word-break:break-word;font-size:13.5px}
   .msg.u .bubble{background:var(--teal);color:#fff}.msg.a .bubble{background:#fff;border:1px solid var(--line)}.msg.s .bubble{background:#fff7e6;border:1px solid #f0e2c0;font-style:italic}
+  .mwidget{border:1px solid var(--teal);border-left:3px solid var(--teal);border-radius:10px;padding:8px 10px;margin:4px 0;background:#f2faf7}
+  .mwidget .mwk{font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+  .mwidget .mwr{display:flex;gap:8px;font-size:12.5px;padding:1px 0}
+  .mwidget .mwr .k{color:var(--muted);min-width:92px;flex:none}
+  .mwidget .mwr .v{color:var(--ink);font-weight:600;word-break:break-word}
   .iod{background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:8px;padding:6px 12px}
   .iod summary{cursor:pointer;font-size:12.5px;color:var(--muted);font-weight:600}
   .iogrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
@@ -73,7 +78,7 @@
 </main>
 <script>
 const DEFAULT_BASE="https://sdmhghqecsiddiitorgs.supabase.co/functions/v1/admin-dashboard";
-const VIEWS=[["overview","Overview"],["log","Log"],["spending","Spending"],["users","Users"],["sessions","Sessions"]];
+const VIEWS=[["overview","Overview"],["log","Log"],["spending","Spending"],["cards","Cards"],["users","Users"],["sessions","Sessions"]];
 const GROUPS=["kind","user","session","device","time"];
 const st={view:"overview",days:3650,eval:false,group:"user",session:null,user:null};
 let charts=[];
@@ -128,6 +133,7 @@ async function render(){
     if(st.view==="overview"){ $("content").innerHTML=overview(d); paintOverview(d); }
     else if(st.view==="log") $("content").innerHTML=logTable(d);
     else if(st.view==="spending") $("content").innerHTML=spendingTable(d);
+    else if(st.view==="cards") $("content").innerHTML=cardsTable(d);
     else if(st.view==="users") $("content").innerHTML=usersTable(d);
     else if(st.view==="sessions") $("content").innerHTML=sessionsTable(d);
     else if(st.view==="session") $("content").innerHTML=sessionDetail(d);
@@ -262,6 +268,25 @@ function userMargin(u){
   return { net, cost, pct: (net - cost) / net * 100 };
 }
 
+// Cards — what the coach proposed and what the user did about it (admin_cards).
+// Rates are quoted against the population that CAN answer: a card sent to a build older than
+// outcome reporting is counted under "can\'t report" and kept out of every percentage, otherwise
+// the whole funnel reads as a product failure while those builds are still in users\' hands.
+// Read-only cards (charts, advisories) never reach this table — nobody was asked to answer them.
+function cardsTable(rows){
+  if(!rows||!rows.length) return `<p class="muted">No cards yet. Rows appear once the proxy that records them is deployed; outcomes ride along on the app\'s NEXT turn, so a fresh confirm takes a while to show up.</p>`;
+  const secs=(v)=>v==null?"—":(+v<90?Math.round(+v)+"s":Math.round(+v/60)+"m");
+  const t=rows.reduce((a,r)=>{["proposed","confirmed","edited","dismissed","pending","legacy","incomplete"].forEach(k=>a[k]+=+r[k]||0);return a;},
+                      {proposed:0,confirmed:0,edited:0,dismissed:0,pending:0,legacy:0,incomplete:0});
+  const answerable=t.proposed-t.legacy, accepted=t.confirmed+t.edited;
+  const head=`<p class="muted">${n(t.proposed)} cards proposed${t.legacy?` (${n(t.legacy)} to builds that can\'t report — excluded from the rates)`:""} · <b>${pct(accepted,answerable)} accepted</b> (${n(t.edited)} needed correcting first) · ${pct(t.dismissed,answerable)} thrown away · ${n(t.pending)} unanswered after an hour.</p>`;
+  return head+`<table><tr><th>kind</th><th class="r">proposed</th><th class="r">confirmed</th><th class="r">edited</th><th class="r">dismissed</th><th class="r">unanswered</th><th class="r">can\'t report</th><th class="r">accepted</th><th class="r">incomplete</th><th class="r">median decision</th></tr>${
+    rows.map(r=>{
+      const acc=(+r.confirmed||0)+(+r.edited||0), ans=(+r.proposed||0)-(+r.legacy||0);
+      return `<tr><td>${esc(r.kind)}</td><td class="r">${n(r.proposed)}</td><td class="r">${n(r.confirmed)}</td><td class="r">${n(r.edited)}</td><td class="r">${n(r.dismissed)}</td><td class="r">${n(r.pending)}</td><td class="r">${n(r.legacy)}</td><td class="r b">${pct(acc,ans)}</td><td class="r">${+r.incomplete>0?`<span class="badge">⚠︎ ${n(r.incomplete)}</span>`:"0"}</td><td class="r">${secs(r.median_seconds)}</td></tr>`;
+    }).join("")}</table>
+  <p class="muted">“edited” means the card was wrong enough that the user corrected it before saving — a high number there is a prompt problem, not a UI one. “incomplete” counts cards that arrived missing a required parameter, which is what a truncated turn looks like from the server.</p>`;
+}
 function usersTable(rows){
   if(!rows.length) return `<p class="muted">No usage in this window.</p>`;
   const sorted=[...rows].sort((a,b)=>(+b.cost_usd||0)-(+a.cost_usd||0)); // #4 — highest cost first
@@ -295,6 +320,28 @@ function sessionsTable(rows){
   if(!rows.length) return head+`<p class="muted">No sessions with a session_id yet — they populate once a TestFlight build with the new client (it stamps <code>x-aisance-session</code>) ships.</p>`;
   return head+`<table><tr><th>session</th><th>user</th><th>device</th><th class="r">turns</th><th class="r">cost</th><th>started</th><th>ended</th></tr>${rows.map(s=>`<tr><td><a data-session="${esc(s.session_id)}">${sid(s.session_id)}</a></td><td>${who(s.ident)}</td><td>${s.device_id?sid(s.device_id):"—"}</td><td class="r">${n(s.turns)}</td><td class="r b">${usd(s.cost_usd)}</td><td>${esc(s.started)}</td><td>${esc(s.ended)}</td></tr>`).join("")}</table>`;
 }
+// Render the CARDS a turn actually showed. A card-only turn logs the full {widgets, proposals}
+// payload into output_text (claude-proxy-agent logIO), so parse it and draw each as a compact widget
+// block — the dashboard then SHOWS the card the user saw, not a blank "(card response)" line. Returns
+// "" when output_text isn't a card payload (a plain text turn, or a raw debug dump), so callers fall
+// back to the text path.
+function renderCards(outputText){
+  if(!outputText) return "";
+  let obj; try{ obj=JSON.parse(outputText); }catch{ return ""; }
+  if(!obj||typeof obj!=="object") return "";
+  const items=[
+    ...(Array.isArray(obj.widgets)?obj.widgets:[]).map(w=>({kind:(w&&(w.kind||w.type))||"widget", data:(w&&(w.props||w.payload))||w})),
+    ...(Array.isArray(obj.proposals)?obj.proposals:[]).map(p=>({kind:(p&&p.kind)||"proposal", data:(p&&p.payload)||p})),
+  ];
+  if(!items.length) return "";
+  return items.map(c=>{
+    const d=c.data;
+    const rows=(d&&typeof d==="object"&&!Array.isArray(d))
+      ? Object.entries(d).map(([k,v])=>`<div class="mwr"><span class="k">${esc(k)}</span><span class="v">${esc(typeof v==="object"?JSON.stringify(v):String(v))}</span></div>`).join("")
+      : (d!=null&&String(d)!=="[object Object]"?`<div class="mwr"><span class="v">${esc(String(d))}</span></div>`:"");
+    return `<div class="mwidget"><div class="mwk">▣ ${esc(c.kind)}</div>${rows}</div>`;
+  }).join("");
+}
 function ioBlocks(io){
   if(!io||!io.length) return "";
   // Costed by the server at the price that was in effect for that model on that day (model_pricing).
@@ -307,7 +354,21 @@ function ioBlocks(io){
     // payload in output_text; older rows (logged before the proxy fix) captured neither, so the
     // response is genuinely unrecoverable — label it rather than showing a blank bubble that reads
     // as "the AI said nothing".
-    const arCell=ar.trim()!==""?esc(ar):`<span class="muted" style="font-style:italic">(card response — no text captured for this turn)</span>`;
+    const cardsHtml=renderCards(r.output_text);
+    const isCardResp=ar.startsWith("[card response]");
+    let arCell;
+    if(cardsHtml){
+      // Full card payload recovered → render the card(s), with the reply text above only if it's a
+      // real message (not the "[card response]" summary placeholder).
+      arCell=(ar.trim()!==""&&!isCardResp?`<div style="margin-bottom:6px">${esc(ar)}</div>`:"")+cardsHtml;
+    }else if(isCardResp){
+      // Only the kind summary survived (payload not captured, e.g. an older row) — show the kinds as
+      // badges rather than the raw "[card response] …" tag.
+      const kinds=ar.replace("[card response]","").split(",").map(s=>s.trim()).filter(Boolean);
+      arCell=kinds.length?kinds.map(k=>`<span class="badge">▣ ${esc(k)}</span>`).join(" "):`<span class="muted" style="font-style:italic">(card response)</span>`;
+    }else{
+      arCell=ar.trim()!==""?esc(ar):`<span class="muted" style="font-style:italic">(card response — no text captured for this turn)</span>`;
+    }
     const dump=(r.user_message!=null&&(r.input_text||r.output_text))?`<details class="iod"><summary>full prompt + raw completion / card payload (debug)</summary><div class="iogrid"><div><div class="iol">INPUT</div><pre>${esc(r.input_text||"")}</pre></div><div><div class="iol">OUTPUT</div><pre>${esc(r.output_text||"")}</pre></div></div></details>`:"";
     return `<div class="panel" style="border:1px solid var(--line);border-radius:12px;padding:12px;margin:8px 0"><div class="muted" style="font-size:12px;margin-bottom:6px"><b>${esc(r.kind||"chat")}</b> · ${esc(r.model||"—")} · in ${n(r.input_tokens)} / out ${n(r.output_tokens)} tok · ${usd6(cost(r))} · ${esc(r.ts||"")}</div><div class="chat"><div class="msg u"><div class="who">user message</div><div class="bubble">${esc(um)}</div></div><div class="msg a"><div class="who">AI response</div><div class="bubble">${arCell}</div></div></div>${dump}</div>`;
   }).join("");
