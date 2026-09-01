@@ -53,6 +53,11 @@
   .mdl{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.3px;padding:2px 6px;
        border-radius:999px;white-space:nowrap}
   .m5{background:#e6f4ef;color:#0f7d63;border:1px solid #bfe3d8}
+  .rangepick{display:inline-flex;align-items:center;gap:8px;margin-left:6px}
+  .rangepick input[type=date]{font:inherit;font-size:12.5px;padding:3px 7px;border:1px solid var(--line);
+    border-radius:7px;background:var(--card);color:var(--ink);cursor:pointer}
+  .rangepick input[type=date]:focus-visible{outline:2px solid var(--teal);outline-offset:1px}
+  .rangelbl{font-size:12px;color:var(--muted);white-space:nowrap}
   .m46{background:#f1eef8;color:#5b4a97;border:1px solid #d9d1ee}
   .mx{background:#f5f5f5;color:#666;border:1px solid #e2e2e2}
   .badge{display:inline-block;background:#fde9c8;color:#8a5a00;border-radius:6px;padding:1px 6px;font-size:11px;font-weight:600}
@@ -92,7 +97,19 @@
 const DEFAULT_BASE="https://sdmhghqecsiddiitorgs.supabase.co/functions/v1/admin-dashboard";
 const VIEWS=[["overview","Overview"],["log","Log"],["spending","Spending"],["cards","Cards"],["users","Users"],["sessions","Sessions"]];
 const GROUPS=["kind","user","session","device","time"];
-const st={view:"overview",days:3650,eval:false,group:"user",session:null,user:null};
+// `since` is an ISO date the window starts at; `days` is derived from it and is what the RPCs
+// actually take. The RPCs only accept "last N days", so a custom window always ENDS now — a true
+// from–to range would mean changing p_days on eight functions, and this answers the same question.
+const st={view:"overview",days:3650,eval:false,group:"user",session:null,user:null,since:null};
+
+// Whole days from `since` to now, at least 1. Anything unparseable or in the future is ignored.
+function daysSince(iso){
+  const d=new Date(iso+"T00:00:00"); if(isNaN(+d)) return null;
+  const n=Math.ceil((Date.now()-d.getTime())/86400000);
+  return n>=1 ? n : null;
+}
+const fmtDay=(iso)=>{const d=new Date(iso+"T00:00:00");
+  return isNaN(+d)?iso:d.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});};
 let charts=[];
 
 const $=(id)=>document.getElementById(id);
@@ -122,9 +139,16 @@ async function api(extra={}){
 function renderControls(){
   $("tabs").innerHTML=VIEWS.map(([v,l])=>`<button class="tab ${v===st.view||(v==='sessions'&&st.view==='session')?'on':''}" data-v="${v}">${l}</button>`).join("");
   const grp=st.view==="spending"?`<span class="seg">group</span>${GROUPS.map(g=>`<span class="chip ${g===st.group?'on':''}" data-g="${g}">${g}</span>`).join("")}<span style="width:10px"></span>`:"";
-  const days=[7,30,90,3650].map(d=>`<span class="chip ${d===st.days?'on':''}" data-d="${d}">${d>=3650?'all':d+'d'}</span>`).join("");
+  const days=[7,30,90,3650].map(d=>`<span class="chip ${(!st.since&&d===st.days)?'on':''}" data-d="${d}">${d>=3650?'all':d+'d'}</span>`).join("");
+  const cust=`<span class="chip ${st.since?'on':''}" data-custom="1">custom</span>`;
+  // The resolved window is spelled out. "since 12 Aug 2026 · 20 days" leaves nothing to infer, and
+  // the day count is the number the RPCs are actually given.
+  const pick=st.since
+    ? `<span class="rangepick"><input type="date" id="sincedate" value="${esc(st.since)}" max="${new Date().toISOString().slice(0,10)}">
+       <span class="rangelbl">since ${esc(fmtDay(st.since))} · ${n(st.days)} day${st.days===1?"":"s"}</span></span>`
+    : "";
   const ev=`<span class="chip ${st.eval?'on':''}" data-eval="1">incl. eval</span>`;
-  $("filters").innerHTML=grp+days+ev;
+  $("filters").innerHTML=grp+days+cust+pick+ev;
 }
 
 function donut(id,parts){
@@ -441,15 +465,28 @@ function sessionDetail(d){
 }
 
 document.addEventListener("click",(e)=>{
-  const t=e.target.closest("[data-v],[data-d],[data-g],[data-eval],[data-session],[data-user],[data-back]"); if(!t)return;
+  const t=e.target.closest("[data-v],[data-d],[data-g],[data-eval],[data-custom],[data-session],[data-user],[data-back]"); if(!t)return;
   if(t.dataset.v){st.view=t.dataset.v;st.session=null;if(t.dataset.v!=="sessions")st.user=null;}
-  else if(t.dataset.d){st.days=+t.dataset.d;}
+  else if(t.dataset.d){st.days=+t.dataset.d;st.since=null;}       // a preset always clears the custom window
+  else if(t.dataset.custom){
+    if(st.since){ st.since=null; st.days=3650; }                  // toggling off returns to "all"
+    else { const d=new Date(Date.now()-13*86400000); st.since=d.toISOString().slice(0,10); st.days=daysSince(st.since); }
+  }
   else if(t.dataset.g){st.group=t.dataset.g;}
   else if(t.dataset.eval!=null){st.eval=!st.eval;}
   else if(t.dataset.session!=null){st.session=t.dataset.session;st.view="session";}
   else if(t.dataset.user!=null){st.user=t.dataset.user||null;st.view="sessions";}
   else if(t.dataset.back){st.view="sessions";st.session=null;}
   render();
+});
+// Delegated: `renderControls` replaces this input's markup on every paint, so a listener bound to
+// the element itself would not survive the first change.
+document.addEventListener("change",(e)=>{
+  if(e.target && e.target.id==="sincedate"){
+    const d=daysSince(e.target.value);
+    if(d===null) return;                                          // future or unparseable — leave it alone
+    st.since=e.target.value; st.days=d; render();
+  }
 });
 $("go").addEventListener("click",()=>{persist();render();});
 $("key").addEventListener("keydown",(e)=>{if(e.key==="Enter"){persist();render();}});
