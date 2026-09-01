@@ -43,6 +43,18 @@
   .barcell .fill{position:absolute;left:0;top:50%;transform:translateY(-50%);height:14px;background:#d7efe6;border-radius:4px;z-index:0}
   .barcell span{position:relative;z-index:1}
   .muted{color:var(--muted)}.b{font-weight:700}
+  /* TOKENS AND COST IN ONE CELL. The Log used to show only dollars, with the token count hidden in
+     a title tooltip — invisible when scanning, and impossible to compare across rows. Cost is the
+     derived number; tokens are the fact. Both are shown, tokens above in the muted size. */
+  .tk{font-size:11px;color:var(--muted);line-height:1.25}
+  .amt{font-variant-numeric:tabular-nums;line-height:1.25}
+  /* The model each row was priced at. Two models at different rates share this table, so a row's
+     dollars cannot be read without knowing which. */
+  .mdl{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.3px;padding:2px 6px;
+       border-radius:999px;white-space:nowrap}
+  .m5{background:#e6f4ef;color:#0f7d63;border:1px solid #bfe3d8}
+  .m46{background:#f1eef8;color:#5b4a97;border:1px solid #d9d1ee}
+  .mx{background:#f5f5f5;color:#666;border:1px solid #e2e2e2}
   .badge{display:inline-block;background:#fde9c8;color:#8a5a00;border-radius:6px;padding:1px 6px;font-size:11px;font-weight:600}
   .badge.an{background:#eef2f7;color:#3f5a78}
   .err{background:#fbeaea;border:1px solid #efc9c6;color:var(--danger);padding:12px 14px;border-radius:10px}
@@ -232,9 +244,42 @@ function paintOverview(o){
   bars("byday",days.map(d=>d.day.slice(5)),days.map(d=>+d.cost));
 }
 
+// Short label for the model a row was priced at. Unknown models are NOT silently blanked — they get
+// the neutral chip and their raw name, because an unpriced model is exactly the thing worth seeing.
+function modelChip(m){
+  const s=String(m||"");
+  if(s==="claude-sonnet-5")   return `<span class="mdl m5" title="${esc(s)} · $2 / $10 / $0.20 / $2.50 per Mtok">S5</span>`;
+  if(s==="claude-sonnet-4-6") return `<span class="mdl m46" title="${esc(s)} · $3 / $15 / $0.30 / $3.75 per Mtok">S4.6</span>`;
+  return `<span class="mdl mx" title="${esc(s)} — no price row; costed from the '*' fallback">${esc(s.replace(/^claude-/,"")||"?")}</span>`;
+}
+// tokens above, dollars below — the fact and the number derived from it, in one column.
+function tc(tok,usd){ return `<div class="tk">${n(tok)}</div><div class="amt b">${usd6(usd)}</div>`; }
+
 function logTable(rows){
   if(!rows.length) return `<p class="muted">No requests in this window.</p>`;
-  return `<p class="muted">Most recent ${rows.length} requests · each priced at the rate in force on its own date, per model (<code>model_pricing</code>). Sonnet 5 is $2 / $10 / $0.20 / $2.50 per million; Sonnet 4.6 was $3 / $15 / $0.30 / $3.75.</p><table><tr><th>timestamp</th><th>who</th><th>kind</th><th class="r">in $</th><th class="r">out $</th><th class="r">cache-r $</th><th class="r">cache-w $</th><th class="r">total $</th><th class="r">latency</th><th>session</th></tr>${rows.map(r=>`<tr><td>${esc(r.ts)}</td><td>${who(r.ident)}</td><td>${esc(r.kind)}${r.over_token_ceiling?' <span class="badge">⚠</span>':''}</td><td class="r" title="${n(r.input_tokens)} tok">${usd6(r.input_cost)}</td><td class="r" title="${n(r.output_tokens)} tok">${usd6(r.output_cost)}</td><td class="r" title="${n(r.cache_read_tokens)} tok">${usd6(r.cache_cost)}</td><td class="r" title="${n(r.cache_creation_tokens)} tok">${usd6(r.cache_write_cost)}</td><td class="r b">${usd6(r.cost_usd)}</td><td class="r">${n(r.latency_ms)}ms</td><td>${r.session_id?`<a data-session="${esc(r.session_id)}">${sid(r.session_id)}</a>`:"—"}</td></tr>`).join("")}</table>`;
+  return `<p class="muted">Most recent ${rows.length} requests · tokens above, cost below. Each row is priced at the rate in force on its own date for <b>its own model</b> (<code>model_pricing</code>) — Sonnet 5 $2 / $10 / $0.20 / $2.50 per million, Sonnet 4.6 was $3 / $15 / $0.30 / $3.75. Two models at different rates share this table, so the chip is what makes a row's dollars readable.</p>
+  <table><tr>
+    <th>timestamp</th><th>model</th><th>who</th><th>kind</th>
+    <th class="r">input</th><th class="r">output</th><th class="r">cache read</th><th class="r">cache write</th>
+    <th class="r">tokens</th><th class="r">total $</th><th class="r">latency</th><th>session</th>
+  </tr>${rows.map(r=>{
+    const tot = Number(r.input_tokens||0)+Number(r.output_tokens||0)
+              + Number(r.cache_read_tokens||0)+Number(r.cache_creation_tokens||0);
+    return `<tr>
+      <td>${esc(r.ts)}</td>
+      <td>${modelChip(r.model)}</td>
+      <td>${who(r.ident)}</td>
+      <td>${esc(r.kind)}${r.over_token_ceiling?' <span class="badge">&#9888;</span>':''}</td>
+      <td class="r">${tc(r.input_tokens, r.input_cost)}</td>
+      <td class="r">${tc(r.output_tokens, r.output_cost)}</td>
+      <td class="r">${tc(r.cache_read_tokens, r.cache_cost)}</td>
+      <td class="r">${tc(r.cache_creation_tokens, r.cache_write_cost)}</td>
+      <td class="r b">${n(tot)}</td>
+      <td class="r b">${usd6(r.cost_usd)}</td>
+      <td class="r">${n(r.latency_ms)}ms</td>
+      <td>${r.session_id?`<a data-session="${esc(r.session_id)}">${sid(r.session_id)}</a>`:"&mdash;"}</td>
+    </tr>`;
+  }).join("")}</table>`;
 }
 function who(id){ return id==="anonymous"?`<span class="badge an">anon</span>`:esc(id); }
 function spendingTable(rows){
