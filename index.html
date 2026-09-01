@@ -158,7 +158,8 @@ function overview(o){
   const cards=`<div class="cards">
     ${card("Total cost",usd(cost),n(o.credits)+" credits")}
     ${card("Requests",n(o.requests),n(o.users)+" users · "+n(o.sessions)+" sessions")}
-    ${card("Anonymous",n(o.anon_requests),pct(o.anon_requests,o.requests)+" of requests")}
+    ${card("Not charged",n(o.undebited_requests ?? o.anon_requests),
+           (o.undebited_cost_usd!=null?usd(o.undebited_cost_usd)+" · ":"")+pct(o.undebited_requests ?? o.anon_requests,o.requests)+" of requests")}
     ${card("Avg cost / request",usd(cost/(o.requests||1)))}
     ${card("Ceiling hits",n(o.ceiling_hits),pct(o.ceiling_hits,o.requests)+" of turns")}
     ${card("Cache-read",n(o.cache_read)+" tok",pct(o.cache_read,(+o.input)+(+o.cache_read))+" of input served cached")}
@@ -189,8 +190,14 @@ function economics(o){
   const avgTokens = reqs ? (inTok+outTok)/reqs : 0;
   const avgCred   = reqs ? creds/reqs : 0;
   const msgs150   = avgCost ? 1.50/avgCost : 0;          // «сколько сообщений, чтобы потратить $1.50»
-  const implied   = cost / CREDIT_USD;                    // кредиты по сырой стоимости, без округления
-  const overhead  = implied ? creds/implied : 0;          // накрутка от per-turn ceil
+  // COMPARE LIKE WITH LIKE. This used to divide TOTAL cost by credits debited, while ~16% of turns
+  // are never debited at all (anonymous-auth users). Their cost sat in the numerator and their
+  // credits could not sit in the denominator, so the ratio read 0.94x under a caption calling that
+  // under-charging. Falls back to total cost only for an older admin_overview that cannot answer.
+  const chargedCost = o.debited_cost_usd!=null ? +o.debited_cost_usd : cost;
+  const unCost      = +(o.undebited_cost_usd ?? 0);
+  const implied     = chargedCost / CREDIT_USD;
+  const overhead    = implied ? creds/implied : 0;
 
   const cards=`<div class="cards">
     ${card("Avg cost / message", usd6(avgCost), n(Math.round(avgTokens))+" tokens per message")}
@@ -202,12 +209,14 @@ function economics(o){
   // Сверка метеринга: списанные кредиты vs кредиты, вытекающие из реальной стоимости токенов.
   const meter=`<div class="panel"><h3>Credit metering check</h3><table>
     <tr><th>what</th><th class="r">value</th></tr>
-    <tr><td>Real token cost (Anthropic pricing)</td><td class="r b">${usd(cost)}</td></tr>
+    <tr><td>Token cost of <b>charged</b> turns</td><td class="r b">${usd(chargedCost)}</td></tr>
     <tr><td>Credits actually debited</td><td class="r b">${n(creds)}</td></tr>
     <tr><td>Credits implied by that cost (no rounding)</td><td class="r">${n(Math.round(implied))}</td></tr>
-    <tr><td>Rounding overhead</td><td class="r">${overhead ? overhead.toFixed(2)+"×" : "—"}</td></tr>
+    <tr><td>Rounding overhead</td><td class="r b">${overhead ? overhead.toFixed(2)+"×" : "—"}</td></tr>
+    ${unCost>0?`<tr><td class="muted">Token cost of turns nobody was charged for</td><td class="r muted">${usd(unCost)}</td></tr>`:""}
     </table>
-    <p class="muted">Every turn debits <code>max(1, ceil(cost / $0.005))</code>, so debited credits sit ABOVE the raw token cost. That gap is the rounding overhead — expected, not an error. A ratio far below 1× would mean under-charging.</p></div>`;
+    <p class="muted">Every turn debits <code>max(1, ceil(cost / $0.005))</code>, so debited credits sit ABOVE the token cost of those same turns. That gap is the rounding overhead — expected, not an error. Below 1× would mean under-charging.<br>
+    Uncharged turns are excluded from the ratio on purpose: their cost is real but they have no credits to compare it against, and mixing them in made this read 0.94× when charging was correct.</p></div>`;
 
   // Таблица лимитов: что план реально даёт пользователю, по ЖИВОМУ среднему.
   const rows=PLANS.map(p=>{
@@ -232,8 +241,12 @@ function insights(o){
   const cacheEff=pct(o.cache_read,(+o.input)+(+o.cache_read));
   out.push(["#b5791a",`Caching serves <b>${cacheEff}</b> of input tokens at a tenth of the base input rate — meaningful savings already.`]);
   if(+o.cache_write===0) out.push(["#b4453c",`<b>Cache-write tokens read 0</b> — they aren't captured in older rows. After the proxy update they'll show here (Anthropic bills a cache write at 1.25x the base input rate).`]);
-  if(+o.anon_requests===0) out.push(["#3f5a78",`<b>0 anonymous requests logged</b> — anon + eval traffic spent real tokens but wasn't recorded (fixed going forward). Your true Anthropic bill is in the Console, not here.`]);
-  else out.push(["#3f5a78",`Anonymous traffic is <b>${pct(o.anon_requests,o.requests)}</b> of requests.`]);
+  // WAS: "0 anonymous requests logged — ... wasn't recorded". Both halves were wrong. `anon_requests`
+  // counts rows with no user_id, which is nobody: an anonymous-AUTH user still has an id. And those
+  // turns are recorded — they are simply never debited. 278 of them, $1.32, invisible until now.
+  const und=+(o.undebited_requests ?? 0), undC=+(o.undebited_cost_usd ?? 0);
+  if(und>0) out.push(["#3f5a78",`<b>${n(und)} turns (${pct(und,o.requests)}) cost ${usd(undC)} and were never charged</b> — anonymous-auth users have no credit row. Intended, but it is real spend with no credit against it.`]);
+  else out.push(["#3f5a78",`Every request in this window was charged against a credit balance.`]);
   out.push(["#1d9e75",`Average turn costs <b>${usd(cost/(o.requests||1))}</b>; ${pct(o.ceiling_hits,o.requests)} of turns hit the per-turn token ceiling.`]);
   return out.map(([c,t])=>`<div class="ins"><span class="dot" style="background:${c}"></span><span>${t}</span></div>`).join("");
 }
