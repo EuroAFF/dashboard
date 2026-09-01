@@ -100,16 +100,18 @@ const GROUPS=["kind","user","session","device","time"];
 // `since` is an ISO date the window starts at; `days` is derived from it and is what the RPCs
 // actually take. The RPCs only accept "last N days", so a custom window always ENDS now — a true
 // from–to range would mean changing p_days on eight functions, and this answers the same question.
-const st={view:"overview",days:3650,eval:false,group:"user",session:null,user:null,since:null};
+// `from`/`to` are a real reporting window: two dates, `to` inclusive of the whole day named. When
+// they are set the RPCs use them and ignore `days`; when they are null the presets apply as before.
+// Dates resolve in the database's timezone (UTC), which is what the Anthropic Console reports in,
+// so a window here and a window there mean the same thing.
+const st={view:"overview",days:3650,eval:false,group:"user",session:null,user:null,from:null,to:null};
 
-// Whole days from `since` to now, at least 1. Anything unparseable or in the future is ignored.
-function daysSince(iso){
-  const d=new Date(iso+"T00:00:00"); if(isNaN(+d)) return null;
-  const n=Math.ceil((Date.now()-d.getTime())/86400000);
-  return n>=1 ? n : null;
-}
-const fmtDay=(iso)=>{const d=new Date(iso+"T00:00:00");
-  return isNaN(+d)?iso:d.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});};
+const isoDay=(d)=>new Date(d).toISOString().slice(0,10);
+const fmtDay=(iso)=>{const d=new Date(iso+"T00:00:00Z");
+  return isNaN(+d)?iso:d.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric",timeZone:"UTC"});};
+// Inclusive of both ends, so a single day reads "1 day" rather than zero.
+const spanDays=(a,b)=>Math.round((new Date(b+"T00:00:00Z")-new Date(a+"T00:00:00Z"))/86400000)+1;
+const rangeOn=()=>!!(st.from&&st.to);
 let charts=[];
 
 const $=(id)=>document.getElementById(id);
@@ -125,6 +127,7 @@ const persist=()=>{const c=cfg();localStorage.setItem("aisance_dash",JSON.string
 async function api(extra={}){
   const c=cfg(); if(!c.key) throw new Error("Enter the admin key first.");
   const p=new URLSearchParams({key:c.key,format:"json",view:st.view,days:String(st.days)});
+  if(rangeOn()){ p.set("from",st.from); p.set("to",st.to); }
   if(st.eval)p.set("eval","1");
   if(st.view==="spending")p.set("group",st.group);
   if(st.user)p.set("user",st.user);
@@ -139,13 +142,18 @@ async function api(extra={}){
 function renderControls(){
   $("tabs").innerHTML=VIEWS.map(([v,l])=>`<button class="tab ${v===st.view||(v==='sessions'&&st.view==='session')?'on':''}" data-v="${v}">${l}</button>`).join("");
   const grp=st.view==="spending"?`<span class="seg">group</span>${GROUPS.map(g=>`<span class="chip ${g===st.group?'on':''}" data-g="${g}">${g}</span>`).join("")}<span style="width:10px"></span>`:"";
-  const days=[7,30,90,3650].map(d=>`<span class="chip ${(!st.since&&d===st.days)?'on':''}" data-d="${d}">${d>=3650?'all':d+'d'}</span>`).join("");
-  const cust=`<span class="chip ${st.since?'on':''}" data-custom="1">custom</span>`;
-  // The resolved window is spelled out. "since 12 Aug 2026 · 20 days" leaves nothing to infer, and
-  // the day count is the number the RPCs are actually given.
-  const pick=st.since
-    ? `<span class="rangepick"><input type="date" id="sincedate" value="${esc(st.since)}" max="${new Date().toISOString().slice(0,10)}">
-       <span class="rangelbl">since ${esc(fmtDay(st.since))} · ${n(st.days)} day${st.days===1?"":"s"}</span></span>`
+  const days=[7,30,90,3650].map(d=>`<span class="chip ${(!rangeOn()&&d===st.days)?'on':''}" data-d="${d}">${d>=3650?'all':d+'d'}</span>`).join("");
+  const cust=`<span class="chip ${rangeOn()?'on':''}" data-custom="1">custom</span>`;
+  // The resolved window is spelled out rather than left to be inferred from two inputs, and it says
+  // UTC because that is the boundary the database and the Anthropic Console both use.
+  const today=isoDay(Date.now());
+  const pick=rangeOn()
+    ? `<span class="rangepick">
+         <input type="date" id="dfrom" value="${esc(st.from)}" max="${esc(st.to)}" aria-label="from">
+         <span class="rangelbl">→</span>
+         <input type="date" id="dto" value="${esc(st.to)}" min="${esc(st.from)}" max="${today}" aria-label="to">
+         <span class="rangelbl">${esc(fmtDay(st.from))} – ${esc(fmtDay(st.to))} · ${n(spanDays(st.from,st.to))} day${spanDays(st.from,st.to)===1?"":"s"} · UTC</span>
+       </span>`
     : "";
   const ev=`<span class="chip ${st.eval?'on':''}" data-eval="1">incl. eval</span>`;
   $("filters").innerHTML=grp+days+cust+pick+ev;
@@ -467,10 +475,10 @@ function sessionDetail(d){
 document.addEventListener("click",(e)=>{
   const t=e.target.closest("[data-v],[data-d],[data-g],[data-eval],[data-custom],[data-session],[data-user],[data-back]"); if(!t)return;
   if(t.dataset.v){st.view=t.dataset.v;st.session=null;if(t.dataset.v!=="sessions")st.user=null;}
-  else if(t.dataset.d){st.days=+t.dataset.d;st.since=null;}       // a preset always clears the custom window
+  else if(t.dataset.d){st.days=+t.dataset.d;st.from=null;st.to=null;}   // a preset always clears the window
   else if(t.dataset.custom){
-    if(st.since){ st.since=null; st.days=3650; }                  // toggling off returns to "all"
-    else { const d=new Date(Date.now()-13*86400000); st.since=d.toISOString().slice(0,10); st.days=daysSince(st.since); }
+    if(rangeOn()){ st.from=null; st.to=null; st.days=3650; }            // toggling off returns to "all"
+    else { st.to=isoDay(Date.now()); st.from=isoDay(Date.now()-13*86400000); }
   }
   else if(t.dataset.g){st.group=t.dataset.g;}
   else if(t.dataset.eval!=null){st.eval=!st.eval;}
@@ -481,12 +489,16 @@ document.addEventListener("click",(e)=>{
 });
 // Delegated: `renderControls` replaces this input's markup on every paint, so a listener bound to
 // the element itself would not survive the first change.
+// Delegated: renderControls replaces this markup on every paint, so a listener bound to the element
+// itself would not survive the first change. An end that crosses the other is CLAMPED rather than
+// rejected — dragging `from` past `to` should move the window, not silently do nothing.
 document.addEventListener("change",(e)=>{
-  if(e.target && e.target.id==="sincedate"){
-    const d=daysSince(e.target.value);
-    if(d===null) return;                                          // future or unparseable — leave it alone
-    st.since=e.target.value; st.days=d; render();
-  }
+  const id=e.target && e.target.id;
+  if(id!=="dfrom" && id!=="dto") return;
+  const v=e.target.value; if(!/^\d{4}-\d{2}-\d{2}$/.test(v)) return;
+  if(id==="dfrom"){ st.from=v; if(st.to<v) st.to=v; }
+  else            { st.to=v;   if(st.from>v) st.from=v; }
+  render();
 });
 $("go").addEventListener("click",()=>{persist();render();});
 $("key").addEventListener("keydown",(e)=>{if(e.key==="Enter"){persist();render();}});
