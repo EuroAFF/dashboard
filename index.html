@@ -1,511 +1,635 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AISANCE · cost & behaviour dashboard</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<meta name="robots" content="noindex,nofollow">
+<title>Aisance: цифры</title>
 <style>
-  :root{--teal:#0f766e;--teal2:#1d9e75;--ink:#1c2b2b;--muted:#5b6b6b;--line:#e4ecea;--bg:#f7faf9;--card:#fff;--danger:#b4453c;--amber:#b5791a;--blue:#2f6fb0;--violet:#6d5bd0;}
+  :root{--ink:#1a1f24;--muted:#5d6670;--line:#e2e5e9;--bg:#f5f6f8;--card:#fff;--accent:#1f6f5c;--warn:#8a5a00;--warnbg:#fdf3e0;--bar:#7fa89d;--slot:#fafbfc}
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
-  header{padding:14px 24px;border-bottom:1px solid var(--line);background:var(--card);display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:0;z-index:5}
-  header h1{font-size:16px;margin:0;color:var(--teal);font-weight:700;letter-spacing:.3px}
-  header .t{color:var(--muted);font-size:13px;flex:1}
-  header input{font:13px monospace;padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
-  header input#key{width:200px}
-  header button{padding:6px 12px;border:1px solid var(--teal);color:var(--teal);background:var(--card);border-radius:8px;font-weight:600;cursor:pointer;font-size:13px}
-  main{padding:18px 24px;max-width:1180px;margin:0 auto}
-  .nav{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
-  .tabs,.filters,.seg{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
-  .seg{margin-right:6px;color:var(--muted);font-size:12px}
-  .tab{padding:7px 13px;border-radius:9px;color:var(--muted);font-weight:600;font-size:14px;cursor:pointer;border:none;background:none}
-  .tab.on{background:var(--teal);color:#fff}
-  .chip{padding:5px 10px;border:1px solid var(--line);border-radius:8px;color:var(--muted);font-size:12px;background:var(--card);cursor:pointer}
-  .chip.on{border-color:var(--teal);color:var(--teal);font-weight:600;background:#eaf5f1}
-  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:14px}
-  .cv{font-size:23px;font-weight:700}.cl{color:var(--muted);font-size:12px;margin-top:2px}.cs{color:var(--teal);font-size:12px;margin-top:4px}
-  .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
-  .grid2{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}
-  .insights{display:flex;flex-direction:column;gap:9px}
-  .ins{display:flex;gap:10px;align-items:flex-start;font-size:13.5px}
-  .ins .dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none}
-  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:6px 0 16px}
-  th,td{padding:8px 11px;text-align:left;border-bottom:1px solid var(--line);font-size:12.5px;white-space:nowrap}
-  th{background:#eef5f3;color:var(--muted);font-weight:600}
-  td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
-  td.b{font-weight:700;color:var(--teal)}
+  [hidden]{display:none!important}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  header{background:var(--card);border-bottom:1px solid var(--line);padding:10px 16px}
+  .top{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+  h1{font-size:15px;margin:0;font-weight:700}
+  .ctl{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  label{font-size:12px;color:var(--muted);display:inline-flex;align-items:center;gap:5px}
+  select,input,button{font:inherit;font-size:13px;color:var(--ink);background:var(--card);border:1px solid #c9ced4;border-radius:6px;padding:4px 7px}
+  input#key{width:150px}
+  button{cursor:pointer}
+  button.pri{background:var(--ink);border-color:var(--ink);color:#fff}
+  .tabs{display:flex;gap:2px;overflow-x:auto;padding:8px 16px 0;background:var(--card);border-bottom:1px solid var(--line);scrollbar-width:thin}
+  .tab{border:0;background:none;border-bottom:2px solid transparent;border-radius:0;padding:6px 10px;color:var(--muted);white-space:nowrap;font-weight:600}
+  .tab.on{color:var(--ink);border-bottom-color:var(--ink)}
+  .tabsep{width:1px;background:var(--line);margin:4px 6px;flex:none}
+  main{padding:14px 16px 40px;max-width:1240px;margin:0 auto}
+  h2{font-size:14px;margin:18px 0 6px;font-weight:700}
+  h2:first-child{margin-top:0}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:10px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0}
+  .kpi .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+  .kpi .l{font-size:12px;color:var(--ink);margin-top:1px}
+  .kpi .s{font-size:11px;color:var(--muted);margin-top:2px}
+  .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px;align-items:start}
+  .two>*{min-width:0}
+  .tw{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:8px;margin-bottom:10px}
+  table{border-collapse:collapse;width:100%}
+  th,td{padding:5px 9px;text-align:left;border-bottom:1px solid var(--line);font-size:12.5px;white-space:nowrap}
   tr:last-child td{border-bottom:0}
-  a{color:var(--teal);cursor:pointer}
-  h3{font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px}
-  .barcell{position:relative;min-width:90px}
-  .barcell .fill{position:absolute;left:0;top:50%;transform:translateY(-50%);height:14px;background:#d7efe6;border-radius:4px;z-index:0}
-  .barcell span{position:relative;z-index:1}
-  .muted{color:var(--muted)}.b{font-weight:700}
-  /* TOKENS AND COST IN ONE CELL. The Log used to show only dollars, with the token count hidden in
-     a title tooltip — invisible when scanning, and impossible to compare across rows. Cost is the
-     derived number; tokens are the fact. Both are shown, tokens above in the muted size. */
-  .tk{font-size:11px;color:var(--muted);line-height:1.25}
-  .amt{font-variant-numeric:tabular-nums;line-height:1.25}
-  /* The model each row was priced at. Two models at different rates share this table, so a row's
-     dollars cannot be read without knowing which. */
-  .mdl{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.3px;padding:2px 6px;
-       border-radius:999px;white-space:nowrap}
-  .m5{background:#e6f4ef;color:#0f7d63;border:1px solid #bfe3d8}
-  .rangepick{display:inline-flex;align-items:center;gap:8px;margin-left:6px}
-  .rangepick input[type=date]{font:inherit;font-size:12.5px;padding:3px 7px;border:1px solid var(--line);
-    border-radius:7px;background:var(--card);color:var(--ink);cursor:pointer}
-  .rangepick input[type=date]:focus-visible{outline:2px solid var(--teal);outline-offset:1px}
-  .rangelbl{font-size:12px;color:var(--muted);white-space:nowrap}
-  .m46{background:#f1eef8;color:#5b4a97;border:1px solid #d9d1ee}
-  .mx{background:#f5f5f5;color:#666;border:1px solid #e2e2e2}
-  .badge{display:inline-block;background:#fde9c8;color:#8a5a00;border-radius:6px;padding:1px 6px;font-size:11px;font-weight:600}
-  .badge.an{background:#eef2f7;color:#3f5a78}
-  .err{background:#fbeaea;border:1px solid #efc9c6;color:var(--danger);padding:12px 14px;border-radius:10px}
-  code{background:#eef5f3;border-radius:5px;padding:1px 5px;font-size:12px}
-  .chat{display:flex;flex-direction:column;gap:9px;max-width:780px}
-  .msg .who{font-size:11px;color:var(--muted);margin-bottom:3px;display:flex;gap:8px}.msg .ts{margin-left:auto}
-  .bubble{padding:9px 12px;border-radius:12px;white-space:pre-wrap;word-break:break-word;font-size:13.5px}
-  .msg.u .bubble{background:var(--teal);color:#fff}.msg.a .bubble{background:#fff;border:1px solid var(--line)}.msg.s .bubble{background:#fff7e6;border:1px solid #f0e2c0;font-style:italic}
-  .mwidget{border:1px solid var(--teal);border-left:3px solid var(--teal);border-radius:10px;padding:8px 10px;margin:4px 0;background:#f2faf7}
-  .mwidget .mwk{font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
-  .mwidget .mwr{display:flex;gap:8px;font-size:12.5px;padding:1px 0}
-  .mwidget .mwr .k{color:var(--muted);min-width:92px;flex:none}
-  .mwidget .mwr .v{color:var(--ink);font-weight:600;word-break:break-word}
-  .iod{background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:8px;padding:6px 12px}
-  .iod summary{cursor:pointer;font-size:12.5px;color:var(--muted);font-weight:600}
-  .iogrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
-  .iol{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
-  .iod pre{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;font-size:11.5px;line-height:1.45;white-space:pre-wrap;word-break:break-word;max-height:340px;overflow:auto;margin:0}
-  @media(max-width:760px){.iogrid{grid-template-columns:1fr}}
-  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+  th{color:var(--muted);font-weight:600;background:#fafbfc}
+  td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+  td.wrap{white-space:normal;min-width:190px}
+  td.b{font-weight:700}
+  a,.lnk{color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:2px;background:none;border:0;padding:0;font:inherit}
+  .note{color:var(--muted);font-size:12px;margin:2px 0 10px;max-width:880px}
+  .nd{color:var(--muted);font-weight:400;font-style:italic}
+  .warnbox{background:var(--warnbg);border:1px solid #edd9b0;border-radius:8px;padding:8px 11px;margin-bottom:10px;font-size:13px;color:#4f3b10}
+  .warnbox b{color:var(--warn)}
+  .warnbox div+div{margin-top:5px}
+  .err{background:#fbecea;border:1px solid #efcdc8;border-radius:8px;padding:8px 11px;margin-bottom:10px;font-size:13px;color:#7b2b22}
+  .slot{background:var(--slot);border:1px dashed #aab2bb;border-radius:8px;padding:9px 12px;margin-bottom:10px;font-size:12.5px;color:var(--muted)}
+  .slot b{color:var(--ink)}
+  .slot ul{margin:4px 0 0;padding-left:18px}
+  .empty{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:10px;font-size:13px}
+  .tag{display:inline-block;font-size:11px;padding:0 5px;border-radius:4px;background:#eceef1;color:var(--muted);margin-left:4px}
+  .tag.w{background:var(--warnbg);color:var(--warn)}
+  .chart{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px 6px;margin-bottom:10px}
+  .chart .ttl{font-size:12px;color:var(--muted);margin-bottom:5px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+  .cols{display:flex;align-items:flex-end;gap:1px;height:84px}
+  .cols i{display:block;flex:1 1 0;min-width:1px;background:var(--bar);border-radius:1px 1px 0 0}
+  .cols i.z{background:var(--line)}
+  .axis{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:3px}
+  details>summary{cursor:pointer;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13.5px}
+  details>summary .more{color:var(--accent);text-decoration:underline;text-underline-offset:2px;font-size:12px;white-space:nowrap}
+  details[open]>summary{font-size:0}
+  details[open]>summary .more{font-size:12px}
+  details>summary .c,details[open]>summary .o{display:none}
+  details[open]>summary .c{display:inline}
+  .fbar{display:flex;align-items:center;gap:8px;font-size:12.5px}
+  .fbar .track{flex:1;background:#eef0f3;height:12px;border-radius:2px;min-width:60px}
+  .fbar .track i{display:block;height:100%;background:var(--bar);border-radius:2px}
+  .msgs{display:flex;flex-direction:column;gap:6px}
+  .m{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:0}
+  .m.user{border-left:3px solid var(--ink)}
+  .m.assistant{border-left:3px solid var(--bar)}
+  .m .h{font-size:11.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:3px 9px;margin-bottom:3px}
+  .m .t{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13.5px}
+  .fil{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
+  pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:11.5px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px;margin:5px 0;max-height:320px;overflow:auto}
+  @media(max-width:600px){
+    input#key{width:120px}
+    .two{grid-template-columns:minmax(0,1fr)}
+    main{padding:12px 12px 32px}
+    header{padding:9px 12px}
+    .tabs{padding:6px 8px 0}
+    .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
 </style>
 </head>
 <body>
 <header>
-  <h1>AISANCE</h1><span class="t">cost &amp; behaviour · token observability</span>
-  <input id="base" title="function base URL">
-  <input id="key" type="password" placeholder="admin key" title="ADMIN_DASHBOARD_SECRET">
-  <button id="go">Load</button>
+  <div class="top">
+    <h1>Aisance: цифры</h1>
+    <div class="ctl">
+      <label>Сервер <select id="server" aria-label="Сервер"></select></label>
+      <input id="key" type="password" placeholder="ключ админки" autocomplete="off" aria-label="Ключ админки">
+      <button id="go" class="pri">Открыть</button>
+    </div>
+    <div class="ctl">
+      <label>Период <select id="preset" aria-label="Период">
+        <option value="7">7 дней</option><option value="30">30 дней</option><option value="90">90 дней</option><option value="all">Всё время</option><option value="custom">Свои даты</option>
+      </select></label>
+      <span id="dates" class="ctl" hidden>
+        <input type="date" id="dfrom" aria-label="С"> <input type="date" id="dto" aria-label="По">
+      </span>
+      <label>Кого считать <select id="aud" aria-label="Кого считать">
+        <option value="real">Реальные</option><option value="test">Тестовые</option><option value="all">Все</option>
+      </select></label>
+    </div>
+  </div>
 </header>
-<main>
-  <div class="nav"><div class="tabs" id="tabs"></div><div class="filters" id="filters"></div></div>
-  <div id="content"><p class="muted">Enter the admin key and press Load.</p></div>
-</main>
-<script>
-const DEFAULT_BASE="https://sdmhghqecsiddiitorgs.supabase.co/functions/v1/admin-dashboard";
-const VIEWS=[["overview","Overview"],["log","Log"],["spending","Spending"],["cards","Cards"],["users","Users"],["sessions","Sessions"]];
-const GROUPS=["kind","user","session","device","time"];
-// `since` is an ISO date the window starts at; `days` is derived from it and is what the RPCs
-// actually take. The RPCs only accept "last N days", so a custom window always ENDS now — a true
-// from–to range would mean changing p_days on eight functions, and this answers the same question.
-// `from`/`to` are a real reporting window: two dates, `to` inclusive of the whole day named. When
-// they are set the RPCs use them and ignore `days`; when they are null the presets apply as before.
-// Dates resolve in the database's timezone (UTC), which is what the Anthropic Console reports in,
-// so a window here and a window there mean the same thing.
-const st={view:"overview",days:3650,eval:false,group:"user",session:null,user:null,from:null,to:null};
+<nav class="tabs" id="tabs"></nav>
+<main id="main"><p class="note">Выберите сервер, введите ключ и нажмите «Открыть».</p></main>
 
-const isoDay=(d)=>new Date(d).toISOString().slice(0,10);
-const fmtDay=(iso)=>{const d=new Date(iso+"T00:00:00Z");
-  return isNaN(+d)?iso:d.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric",timeZone:"UTC"});};
-// Inclusive of both ends, so a single day reads "1 day" rather than zero.
-const spanDays=(a,b)=>Math.round((new Date(b+"T00:00:00Z")-new Date(a+"T00:00:00Z"))/86400000)+1;
-const rangeOn=()=>!!(st.from&&st.to);
-let charts=[];
+<script>
+// Ключа в этом файле нет: страница публичная, данные отдаёт функция admin-dashboard по заголовку x-admin-key.
+const SERVERS={
+  staging:{label:"Staging (тест)",base:"https://oiuzslzcbamraxyluyqj.supabase.co/functions/v1/admin-dashboard",ref:"oiuzslzcbamraxyluyqj"},
+  prod:{label:"Прод",base:"https://sdmhghqecsiddiitorgs.supabase.co/functions/v1/admin-dashboard",ref:"sdmhghqecsiddiitorgs"},
+};
+const TABS=[["summary","Сводка"],["users","Пользователи"],["money","Деньги"],["funnel","Воронка"],["chat","Чат ИИ"],["messages","Сообщения"],["features","Функции"],["health","Здоровье"],["|",""],["log","Журнал"],["spending","Расходы"],["cards","Карточки"],["people","Люди"],["sessions","Сессии"]];
+const STATS_TABS=new Set(["summary","users","money","funnel","chat","features","health"]);
+const GROUPS=[["user","по людям"],["session","по сессиям"],["device","по устройствам"],["time","по дням"],["kind","по типам"]];
+
+const st={server:"staging",tab:"summary",preset:"30",from:null,to:null,audience:"real",stats:null,group:"user",user:null,session:null,inSession:false,
+  msg:{user:null,session:null,role:"all",sort:"newest",minLen:0,source:"all",offset:0,rows:[],data:null}};
 
 const $=(id)=>document.getElementById(id);
 const esc=(s)=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const n=(x)=>Number(x||0).toLocaleString("en-US");
-const usd=(x)=>"$"+Number(x||0).toFixed(Number(x)>=1?2:4);
-const usd6=(x)=>"$"+Number(x||0).toFixed(6);
-const pct=(a,b)=>b?Math.round(a/b*100)+"%":"0%";
-const sid=(x)=>x?esc(String(x).slice(0,8)):"—";
-const cfg=()=>({base:$("base").value.trim()||DEFAULT_BASE,key:$("key").value.trim()});
-const persist=()=>{const c=cfg();localStorage.setItem("aisance_dash",JSON.stringify(c));};
+const isNum=(x)=>x!==null&&x!==undefined&&x!==""&&!isNaN(+x);
+const n=(x)=>isNum(x)?Number(x).toLocaleString("ru-RU"):ND;
+const ND=`<span class="nd">нет данных</span>`;
+const usd=(x,d)=>{if(!isNum(x))return ND;const v=+x;const dig=d!=null?d:(Math.abs(v)>=100?0:Math.abs(v)>=1?2:4);return "$"+v.toLocaleString("ru-RU",{minimumFractionDigits:dig,maximumFractionDigits:dig});};
+const pct=(a,b)=>(isNum(a)&&+b>0)?Math.round(+a/+b*100)+"%":"";
+const bytes=(x)=>{if(!isNum(x))return ND;const v=+x;if(v>=1e9)return (v/1e9).toLocaleString("ru-RU",{maximumFractionDigits:2})+" ГБ";if(v>=1e6)return (v/1e6).toLocaleString("ru-RU",{maximumFractionDigits:1})+" МБ";if(v>=1e3)return Math.round(v/1e3).toLocaleString("ru-RU")+" КБ";return v+" Б";};
+const sid=(x)=>x?esc(String(x).slice(0,8)):"-";
+const today=()=>new Date().toISOString().slice(0,10);
+const shift=(d)=>new Date(Date.now()-d*86400000).toISOString().slice(0,10);
+const store={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set(k,v){try{localStorage.setItem(k,v);}catch(e){}}};
 
-async function api(extra={}){
-  const c=cfg(); if(!c.key) throw new Error("Enter the admin key first.");
-  const p=new URLSearchParams({key:c.key,format:"json",view:st.view,days:String(st.days)});
-  if(rangeOn()){ p.set("from",st.from); p.set("to",st.to); }
-  if(st.eval)p.set("eval","1");
-  if(st.view==="spending")p.set("group",st.group);
-  if(st.user)p.set("user",st.user);
-  if(st.session)p.set("session",st.session);
-  Object.entries(extra).forEach(([k,v])=>p.set(k,v));
-  const res=await fetch(c.base+"?"+p.toString());
+function windowDates(){
+  if(st.preset==="custom"&&st.from&&st.to) return {from:st.from,to:st.to};
+  if(st.preset==="all") return {from:"2026-01-01",to:today()};
+  const d=parseInt(st.preset,10)||30;
+  return {from:shift(d-1),to:today()};
+}
+
+async function call(params){
+  const key=$("key").value.trim();
+  if(!key) throw new Error("Введите ключ админки.");
+  const p=new URLSearchParams({format:"json",...params});
+  const res=await fetch(SERVERS[st.server].base+"?"+p.toString(),{headers:{"x-admin-key":key},signal:AbortSignal.timeout(45000)});
   const j=await res.json().catch(()=>({error:"bad_response"}));
-  if(!res.ok||j.error) throw new Error(j.error==="unauthorized"?"Key rejected (401). Check the admin key.":(j.error||("HTTP "+res.status)));
-  return j.data;
+  if(res.status===401) throw new Error("Ключ не подошёл, либо на этом сервере ещё старая версия функции admin-dashboard.");
+  if(res.status===503) throw new Error("На этом сервере не задан ADMIN_DASHBOARD_SECRET.");
+  if(!res.ok||j.error) throw new Error("Сервер ответил ошибкой: "+(j.error||res.status));
+  return j;
 }
 
-function renderControls(){
-  $("tabs").innerHTML=VIEWS.map(([v,l])=>`<button class="tab ${v===st.view||(v==='sessions'&&st.view==='session')?'on':''}" data-v="${v}">${l}</button>`).join("");
-  const grp=st.view==="spending"?`<span class="seg">group</span>${GROUPS.map(g=>`<span class="chip ${g===st.group?'on':''}" data-g="${g}">${g}</span>`).join("")}<span style="width:10px"></span>`:"";
-  const days=[7,30,90,3650].map(d=>`<span class="chip ${(!rangeOn()&&d===st.days)?'on':''}" data-d="${d}">${d>=3650?'all':d+'d'}</span>`).join("");
-  const cust=`<span class="chip ${rangeOn()?'on':''}" data-custom="1">custom</span>`;
-  // The resolved window is spelled out rather than left to be inferred from two inputs, and it says
-  // UTC because that is the boundary the database and the Anthropic Console both use.
-  const today=isoDay(Date.now());
-  const pick=rangeOn()
-    ? `<span class="rangepick">
-         <input type="date" id="dfrom" value="${esc(st.from)}" max="${esc(st.to)}" aria-label="from">
-         <span class="rangelbl">→</span>
-         <input type="date" id="dto" value="${esc(st.to)}" min="${esc(st.from)}" max="${today}" aria-label="to">
-         <span class="rangelbl">${esc(fmtDay(st.from))} – ${esc(fmtDay(st.to))} · ${n(spanDays(st.from,st.to))} day${spanDays(st.from,st.to)===1?"":"s"} · UTC</span>
-       </span>`
-    : "";
-  const ev=`<span class="chip ${st.eval?'on':''}" data-eval="1">incl. eval</span>`;
-  $("filters").innerHTML=grp+days+cust+pick+ev;
+// ---------- общие куски ----------
+const kpi=(l,v,s)=>`<div class="kpi"><div class="v">${v}</div><div class="l">${esc(l)}</div>${s?`<div class="s">${s}</div>`:""}</div>`;
+const tbl=(head,rows)=>`<div class="tw"><table><tr>${head.map(h=>{const r=h.startsWith(">");return `<th${r?' class="r"':""}>${esc(r?h.slice(1):h)}</th>`;}).join("")}</tr>${rows.join("")}</table></div>`;
+const tr=(...cells)=>"<tr>"+cells.join("")+"</tr>";
+const td=(v,c)=>`<td${c?` class="${c}"`:""}>${v}</td>`;
+const R=(v)=>td(v,"r");
+const secErr=(s)=>s&&s.error?`<div class="err">Этот раздел не загрузился: ${esc(s.error)}</div>`:"";
+const period=()=>{const w=windowDates();return esc(w.from)+" ... "+esc(w.to);};
+
+function dayBars(title,rows,key,fmt){
+  const w=windowDates();
+  const map=new Map((rows||[]).map(r=>[r.day,+r[key]||0]));
+  const first=(rows&&rows.length&&st.preset==="all")?rows[0].day:w.from;
+  const out=[];let d=new Date(first+"T00:00:00Z");const end=new Date(w.to+"T00:00:00Z");
+  while(d<=end&&out.length<800){const iso=d.toISOString().slice(0,10);out.push([iso,map.get(iso)||0]);d=new Date(+d+86400000);}
+  const max=Math.max(0,...out.map(x=>x[1]));
+  const f=fmt||((v)=>Number(v).toLocaleString("ru-RU"));
+  if(!out.length||max===0) return `<div class="chart"><div class="ttl"><span>${esc(title)}</span></div><span class="nd">за этот период нет данных</span></div>`;
+  const sum=out.reduce((a,x)=>a+x[1],0);
+  return `<div class="chart"><div class="ttl"><span>${esc(title)}</span><span>всего ${f(sum)}, максимум ${f(max)}</span></div>
+    <div class="cols">${out.map(([day,v])=>`<i class="${v?"":"z"}" style="height:${v?Math.max(4,Math.round(v/max*100)):2}%" title="${esc(day)}: ${esc(f(v))}"></i>`).join("")}</div>
+    <div class="axis"><span>${esc(out[0][0])}</span><span>${esc(out[out.length-1][0])}</span></div></div>`;
 }
 
-function donut(id,parts){
-  const el=document.getElementById(id); if(!el)return;
-  charts.push(new Chart(el,{type:"doughnut",data:{labels:parts.map(p=>p.label),datasets:[{data:parts.map(p=>+p.v),backgroundColor:parts.map(p=>p.c),borderWidth:0}]},options:{cutout:"62%",plugins:{legend:{display:false},tooltip:{callbacks:{label:(c)=>c.label+": $"+(+c.parsed).toFixed(4)}}}}}));
-}
-function bars(id,labels,data){
-  const el=document.getElementById(id); if(!el)return;
-  charts.push(new Chart(el,{type:"bar",data:{labels,datasets:[{data,backgroundColor:"#1d9e75",borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:(c)=>"$"+(+c.parsed.y).toFixed(4)}}},scales:{x:{grid:{display:false},ticks:{font:{size:10},maxRotation:45,autoSkip:false}},y:{ticks:{font:{size:10},callback:v=>"$"+(+v).toFixed(2)}}}}}));
+const SLOT_MIXPANEL=`<div class="slot"><b>Ждёт данных: Mixpanel</b> (AisanceEU 4039761). Панели нужен серверный ключ, через вход Артёма она читать не может.
+  <ul><li>Активные за день, неделю, месяц: <code>v1_app_opened</code></li>
+  <li>Интро: <code>v1_intro_step1_continue</code>, <code>v1_intro_step2_continue</code>, <code>v1_intro_step3_get_started</code></li>
+  <li>Пейвол: <code>v1_paywall_opened</code>, <code>v1_plan_selected</code>, <code>v1_purchase_completed</code>, <code>v1_purchase_abandoned</code></li>
+  <li>Упёрлись в лимит: <code>v1_token_limit_reached</code></li>
+  <li>Голос: <code>v1_money_voice_started</code>, <code>v1_money_voice_result</code></li>
+  <li>Страны. Только реальные: <code>build_env = production</code>, а у версии 1.5.15 этого свойства нет, там фильтр по <code>$app_version_string</code></li></ul></div>`;
+const SLOT_APPSFLYER=`<div class="slot"><b>Ждёт ключа: AppsFlyer.</b> Установки и источники трафика. На сервере этого нет.</div>`;
+const SLOT_LOGS=`<div class="slot"><b>Ждёт ключа: логи функций Supabase.</b> Ошибки edge-функций лежат в логах, а не в базе. Функции нужен токен Supabase Management API с правом на чтение логов; его пока нет, поэтому числа здесь нет.</div>`;
+
+function rcBlock(rc){
+  if(!rc||rc.status==="no_key") return `<div class="slot"><b>Ждёт ключа: RevenueCat.</b> На сервере не задан REVENUECAT_API_KEY или REVENUECAT_PROJECT_ID.</div>`;
+  if(rc.status==="no_access") return `<div class="slot"><b>Ждёт ключа: RevenueCat.</b> Ключ на сервере не имеет доступа к метрикам (ответ ${esc(rc.http)}). Нужен секретный ключ V2 с правами на charts_metrics.</div>`;
+  if(rc.status!=="ok") return `<div class="err">RevenueCat сейчас не ответил (${esc(rc.http||rc.detail||"ошибка")}). Обновите страницу позже.</div>`;
+  const a=rc.now||{},w=rc.window||{};
+  return `<h2>Магазин: RevenueCat, сейчас</h2><div class="kpis">
+      ${kpi("Активные подписки",n(a.active_subscriptions),"сейчас, без пробных")}
+      ${kpi("Активные пробные",n(a.active_trials),"сейчас")}
+      ${kpi("MRR",usd(a.mrr,0),"в месяц")}
+      ${kpi("Выручка за 28 дней",usd(a.revenue_28d,0),"последние 28 дней")}
+      ${kpi("Новые клиенты",n(a.new_customers_28d),"последние 28 дней")}
+      ${kpi("Активные клиенты",n(a.active_users_28d),"последние 28 дней")}
+    </div>
+    <h2>Магазин: RevenueCat, за период</h2>
+    ${w.charts_ok?"":`<div class="note">Часть графиков RevenueCat не ответила: пропуски ниже значат «неизвестно», а не ноль.</div>`}
+    <div class="kpis">
+      ${kpi("Выручка",usd(w.revenue,0),n(w.transactions)+" транзакций, с продлениями")}
+      ${kpi("Пробных начато",n(w.trial_starts))}
+      ${kpi("Пробный в оплату",n(w.trial_conversions),isNum(w.trial_starts)&&+w.trial_starts>0?pct(w.trial_conversions,w.trial_starts)+" от начатых":"")}
+      ${kpi("Пробных истекло",n(w.trial_expired),isNum(w.trial_pending)?n(w.trial_pending)+" ещё идут":"")}
+      ${kpi("Новые платные",n(w.new_paid),isNum(w.resubscribed)?n(w.resubscribed)+" вернулись":"")}
+      ${kpi("Потеряли доступ",n(w.churned),"отмены и неуспешные списания вместе")}
+      ${kpi("Новые клиенты",n(w.new_customers))}
+    </div>
+    <p class="note">Проект RevenueCat берётся из секретов сервера и может быть один на все сборки, поэтому на staging здесь могут быть боевые покупки. Отдельного числа продлений в RevenueCat нет: продления входят в транзакции.</p>`;
 }
 
-async function render(){
-  renderControls();
-  charts.forEach(c=>{try{c.destroy()}catch(e){}}); charts=[];
-  $("content").innerHTML=`<p class="muted">Loading…</p>`;
-  try{
-    const d=await api();
-    if(st.view==="overview"){ $("content").innerHTML=overview(d); paintOverview(d); }
-    else if(st.view==="log") $("content").innerHTML=logTable(d);
-    else if(st.view==="spending") $("content").innerHTML=spendingTable(d);
-    else if(st.view==="cards") $("content").innerHTML=cardsTable(d);
-    else if(st.view==="users") $("content").innerHTML=usersTable(d);
-    else if(st.view==="sessions") $("content").innerHTML=sessionsTable(d);
-    else if(st.view==="session") $("content").innerHTML=sessionDetail(d);
-  }catch(e){ $("content").innerHTML=`<div class="err">${esc(e.message)}</div>`; }
+// ---------- разделы ----------
+function viewSummary(d){
+  const s=d.sections,u=s.users||{},m=s.money||{},c=s.chat||{},f=s.funnel||{},h=s.health||{},t=c.totals||{};
+  const a=[];
+  if(h.freshness&&h.freshness.chat&&(Date.now()-new Date(h.freshness.chat.replace(" ","T")+":00Z"))>7*86400000) a.push(`<b>Чат молчит:</b> последнее сообщение на сервере ${esc(h.freshness.chat)}.`);
+  const rcA=d.rc&&d.rc.status==="ok"?d.rc.now.active_subscriptions:null;
+  if(st.server==="prod"&&isNum(rcA)&&isNum(m.paid_now)&&+rcA!==+m.paid_now&&d.audience==="real") a.push(`<b>Подписки расходятся:</b> RevenueCat считает ${n(rcA)} активных, а по таблице user_credits доступ оплачен у ${n(m.paid_now)}. Деньгами считайте RevenueCat, а доступ проверьте.`);
+  return (a.length?`<div class="warnbox">${a.map(x=>`<div>${x}</div>`).join("")}</div>`:"")+
+    `<div class="kpis">
+      ${kpi("Новые пользователи",n(u.new_total),"за период, "+n(u.new_with_account)+" с аккаунтом")}
+      ${kpi("Активные",n(u.active&&u.active.any),"за период, нижняя граница")}
+      ${kpi("Всего пользователей",n(u.total),n(u.with_account)+" с аккаунтом")}
+      ${kpi("Платят сейчас",n(m.paid_now),"по user_credits")}
+      ${kpi("Подписки в магазине",d.rc&&d.rc.status==="ok"?n(d.rc.now.active_subscriptions):ND,"RevenueCat, сейчас")}
+      ${kpi("MRR",d.rc&&d.rc.status==="ok"?usd(d.rc.now.mrr,0):ND,"RevenueCat")}
+      ${kpi("Сообщений в чате",n(t.messages),"за период, "+n(t.users)+" человек")}
+      ${kpi("Расход на ИИ",usd(t.cost_usd),"за период")}
+    </div>`+
+    dayBars("Новые пользователи по дням",u.by_day,"total")+
+    dayBars("Сообщения в чате по дням",c.by_day,"messages")+
+    SLOT_MIXPANEL;
 }
 
-function overview(o){
-  const cb=o.cost_breakdown||{}; const cost=+o.cost_usd||0;
-  const card=(l,v,s)=>`<div class="card"><div class="cv">${v}</div><div class="cl">${esc(l)}</div>${s?`<div class="cs">${s}</div>`:""}</div>`;
-  const cards=`<div class="cards">
-    ${card("Total cost",usd(cost),n(o.credits)+" credits")}
-    ${card("Requests",n(o.requests),n(o.users)+" users · "+n(o.sessions)+" sessions")}
-    ${card("Not charged",n(o.undebited_requests ?? o.anon_requests),
-           (o.undebited_cost_usd!=null?usd(o.undebited_cost_usd)+" · ":"")+pct(o.undebited_requests ?? o.anon_requests,o.requests)+" of requests")}
-    ${card("Avg cost / request",usd(cost/(o.requests||1)))}
-    ${card("Ceiling hits",n(o.ceiling_hits),pct(o.ceiling_hits,o.requests)+" of turns")}
-    ${card("Cache-read",n(o.cache_read)+" tok",pct(o.cache_read,(+o.input)+(+o.cache_read))+" of input served cached")}
+function viewUsers(d){
+  const u=d.sections.users; if(u.error) return secErr(u);
+  const p=u.plans||{},a=u.active||{};
+  const lang=(u.languages||[]);
+  const known=lang.filter(l=>l.language);
+  return `<div class="kpis">
+      ${kpi("Новые",n(u.new_total),"за период")}
+      ${kpi("Новые с аккаунтом",n(u.new_with_account),"за период, Apple или почта")}
+      ${kpi("Всего",n(u.total),"сейчас")}
+      ${kpi("Анонимные",n(u.anonymous),pct(u.anonymous,u.total)+" от всех")}
+      ${kpi("С аккаунтом",n(u.with_account),"сейчас")}
+    </div>`+
+    dayBars("Регистрации по дням (первый запуск создаёт анонимного пользователя)",u.by_day,"total")+
+    dayBars("Из них с аккаунтом",u.by_day,"with_account")+
+    `<div class="two"><div><h2>Активные за период</h2>`+tbl(["Признак",">Людей"],[
+      tr(td("Что-то из списка ниже"),R(n(a.any))),
+      tr(td("Писали в чат"),R(n(a.chat))),
+      tr(td("Обновили резервную копию"),R(n(a.backup))),
+      tr(td("Обновили токен уведомлений"),R(n(a.push))),
+      tr(td("Вошли или запустили впервые"),R(n(a.signin))),
+    ])+`<p class="note">Нижняя граница: для копий, токенов и входа в базе хранится только последняя дата, поэтому старые периоды занижены. Настоящие активные придут из Mixpanel.</p></div>
+    <div><h2>Планы сейчас</h2>`+tbl(["План",">Людей"],[
+      tr(td("Free"),R(n(p.free))),
+      tr(td("Пробный Apple идёт"),R(n(p.apple_trial))),
+      tr(td("Платят"),R(n(p.paid))),
+      ...(u.paid_by_plan||[]).map(x=>tr(td("&nbsp;&nbsp;"+esc(x.plan_id)),R(n(x.n)))),
+      tr(td("&nbsp;&nbsp;из них купили на вебе"),R(n(u.paid_from_web))),
+      tr(td("Пробный закончился без оплаты"),R(n(p.trial_ended))),
+      tr(td("Подписка закончилась"),R(n(p.lapsed))),
+    ])+`<p class="note">По таблице user_credits. Free в базе называется trial. У кого строки в этой таблице нет, считается как Free.</p></div></div>
+    <div class="two"><div><h2>Языки</h2>`+
+      (known.length?tbl(["Язык",">Устройств"],lang.map(l=>tr(td(l.language?esc(l.language):`<span class="nd">не указан</span>`),R(n(l.n))))):
+      `<div class="empty">Нет данных: язык начал сохраняться только 04.11, и только у тех, кто разрешил уведомления.</div>`)+
+    `</div><div><h2>Страны</h2><div class="empty">Нет данных на сервере: страну мы не храним. Страны придут из Mixpanel и RevenueCat.</div></div></div>`+SLOT_MIXPANEL+SLOT_APPSFLYER;
+}
+
+function viewMoney(d){
+  const m=d.sections.money; const s=m.stripe||{},c=m.codes||{},tp=m.topups||{},rc=m.rc_events||{};
+  const web=(m.web_purchases||[]);
+  return rcBlock(d.rc)+secErr(m)+(m.error?"":`<h2>Сервер: кто имеет оплаченный доступ сейчас</h2><div class="kpis">
+      ${kpi("Платят",n(m.paid_now),"user_credits, дата в будущем")}
+      ${kpi("Пробный идёт",n(m.trial_now))}
+      ${kpi("Заканчиваются за 7 дней",n(m.ending_7d),"без учёта автопродления")}
+      ${kpi("Подписка закончилась",n(m.lapsed_now))}
+      ${kpi("Пробный закончился",n(m.trial_ended_now))}
+    </div>`+
+    `<div class="two"><div><h2>По планам</h2>`+((m.paid_by_plan||[]).length?tbl(["План","Цена в каталоге",">Людей"],m.paid_by_plan.map(p=>tr(td(esc(p.plan_id)),td(esc(p.price_hint||"-")),R(n(p.n))))):`<div class="empty">Нет данных: сейчас никто не платит.</div>`)+
+    `<p class="note">Цена из каталога, а не списанные деньги, поэтому выручку отсюда не считаем.</p></div>
+    <div><h2>Веб и Stripe за период</h2>`+tbl(["Что",">Число"],[
+      tr(td("Stripe: активные подписки сейчас"),R(n(s.active))),
+      tr(td("Stripe: новые"),R(n(s.new))),
+      tr(td("Stripe: отменены"),R(n(s.canceled))),
+      tr(td("Stripe: возвраты"),R(n(s.refunded))),
+      tr(td("Веб-воронка: покупки"),R(n(m.web_leads_purchased))),
+      ...web.map(w=>tr(td("Сумма покупок Stripe, "+esc(w.currency||"")),R(n(w.value)))),
+      tr(td("Коды активации выданы"),R(n(c.issued))),
+      tr(td("Коды активации погашены"),R(n(c.redeemed))),
+      tr(td("Докупили кредиты"),R(n(tp.n))),
+      tr(td("События RevenueCat получены"),R(n(rc.in_window))),
+    ])+`<p class="note">Последнее событие RevenueCat: ${esc(rc.last_at||"нет")}. Вебхук хранит только номер события, без типа и цены, поэтому продления, отмены и выручку по этой таблице посчитать нельзя: они берутся из RevenueCat выше.</p></div></div>`);
+}
+
+function viewFunnel(d){
+  const f=d.sections.funnel; if(f.error) return secErr(f);
+  const a=f.app||{},w=f.web||{},o=f.onboarding_progress||{};
+  const base=+a.first_seen||0;
+  const step=(label,v,note)=>tr(td(esc(label),"wrap"),R(n(v)),td(`<div class="fbar"><div class="track"><i style="width:${base?Math.min(100,Math.round(+v/base*100)):0}%"></i></div></div>`),R(pct(v,base)||"-"),td(note||"","wrap"));
+  const slotStep=(label)=>tr(td(esc(label),"wrap"),R(ND),td(""),R("-"),td("На устройстве, придёт из Mixpanel","wrap"));
+  return `<h2>Приложение: кто появился за период и что с ним стало</h2>`+tbl(["Шаг",">Людей","",">От первого","Откуда"],[
+      step("Первый запуск",a.first_seen,"auth.users"),
+      slotStep("Интро и онбординг"),
+      step("Вошли в аккаунт",a.signed_in,"не анонимные"),
+      step("Написали в чат",a.chatted,"llm_usage"),
+      slotStep("Увидели пейвол"),
+      step("Начали пробный",a.trial_seen,"user_credits, видно только пока не оплатили"),
+      step("Платили хоть раз",a.paid_ever,"user_credits"),
+      step("Платят сейчас",a.paid_now,"user_credits"),
+    ])+`<p class="note">Шаги не строго вложены: можно заплатить без входа в аккаунт. Метка начала пробного стирается при оплате, поэтому точная конверсия пробного в оплату есть только в разделе «Деньги», из RevenueCat. Анкета онбординга на сервере: ${n(o.installs)} установок за период, таблица чистится по расписанию, поэтому для воронки она не годится.</p>`+
+    `<h2>Веб-воронка</h2><div class="kpis">
+      ${kpi("Заявки",n(w.leads))}
+      ${kpi("Выбрали пробный",n(w.trial_selected),pct(w.trial_selected,w.leads))}
+      ${kpi("Купили",n(w.purchased),pct(w.purchased,w.leads))}
+      ${kpi("Привязались к аккаунту",n(w.linked_user),pct(w.linked_user,w.purchased)+" от купивших")}
+    </div>`+((w.by_funnel||[]).length?tbl(["Воронка",">Заявки",">Купили"],w.by_funnel.map(x=>tr(td(esc(x.funnel_id)),R(n(x.leads)),R(n(x.purchased))))):`<div class="empty">Нет данных за этот период.</div>`)+
+    `<p class="note">Воронки с именем qa-* считаются тестовыми.</p>`+SLOT_MIXPANEL;
+}
+
+function viewChat(d){
+  const c=d.sections.chat; if(c.error) return secErr(c);
+  const t=c.totals||{},l=c.limits||{},b=c.per_user_buckets||{};
+  const fam={};(c.by_model||[]).forEach(m=>{const x=fam[m.family]=fam[m.family]||{messages:0,cost:0,input:0,output:0,cache:0};x.messages+=+m.messages;x.cost+=+m.cost_usd;x.input+=+m.input;x.output+=+m.output;x.cache+=(+m.cache_read)+(+m.cache_write);});
+  const msgs=+t.messages||0;
+  const fallback=(c.by_model||[]).filter(m=>m.fallback_price);
+  return `<div class="kpis">
+      ${kpi("Сообщений",n(t.messages),"от людей, за период")}
+      ${kpi("Людей",n(t.users),msgs&&+t.users?(msgs/+t.users).toLocaleString("ru-RU",{maximumFractionDigits:1})+" сообщения на человека":"")}
+      ${kpi("Расход",usd(t.cost_usd),"все запросы к ИИ")}
+      ${kpi("Цена сообщения",msgs?usd(+t.msg_cost_usd/msgs):ND,"только сообщения чата")}
+      ${kpi("Без списания кредитов",usd(t.uncharged_cost_usd),"анонимные и служебные")}
+      ${kpi("Ошибки чата",n(t.errors),"agent_error")}
+      ${kpi("Упёрлись в потолок токенов",n(t.ceiling_hits),"за один запрос")}
+      ${kpi("Задержка ответа",isNum(t.latency_p50_ms)?(Math.round(+t.latency_p50_ms/100)/10).toLocaleString("ru-RU")+" с":ND,isNum(t.latency_p95_ms)?"95%: "+(Math.round(+t.latency_p95_ms/100)/10).toLocaleString("ru-RU")+" с":"")}
+    </div>`+
+    dayBars("Сообщения по дням",c.by_day,"messages")+
+    dayBars("Haiku по дням",c.by_day,"haiku")+
+    dayBars("Sonnet по дням",c.by_day,"sonnet")+
+    dayBars("Расход по дням, $",c.by_day,"cost_usd",(v)=>usd(v))+
+    `<div class="two"><div><h2>Haiku и Sonnet</h2>`+(Object.keys(fam).length?tbl(["Семейство",">Сообщений",">Доля",">Расход"],Object.entries(fam).map(([k,v])=>tr(td(esc(k)),R(n(v.messages)),R(pct(v.messages,msgs)||"-"),R(usd(v.cost))))):`<div class="empty">Нет данных за этот период.</div>`)+
+    `</div><div><h2>Сколько пишут</h2>`+tbl(["Сообщений за период",">Людей"],[tr(td("1"),R(n(b.one))),tr(td("2-5"),R(n(b.two_to_five))),tr(td("6-20"),R(n(b.six_to_twenty))),tr(td("Больше 20"),R(n(b.over_twenty)))])+`</div></div>`+
+    `<h2>По моделям</h2>`+((c.by_model||[]).length?tbl(["Модель",">Сообщ.",">Запросы",">Людей",">Вход",">Выход",">Кэш чтение",">Кэш запись",">Расход"],c.by_model.map(m=>tr(td(esc(m.model)+(m.fallback_price?`<span class="tag w">нет цены</span>`:"")),R(n(m.messages)),R(n(m.requests)),R(n(m.users)),R(n(m.input)),R(n(m.output)),R(n(m.cache_read)),R(n(m.cache_write)),R(usd(m.cost_usd))))):`<div class="empty">Нет данных за этот период.</div>`)+
+    (fallback.length?`<p class="note">«Нет цены»: модели нет в model_pricing, расход посчитан по общей ставке $3 / $15, то есть примерно.</p>`:"")+
+    `<h2>Кто тратит больше всех</h2>`+((c.top_spenders||[]).length?tbl(["Человек","План",">Сообщ.",">Запросы",">Токены",">Расход",">Осталось кредитов","Последний раз",""],c.top_spenders.map(u=>tr(
+        td(`<a data-user="${esc(u.user_id)}">${sid(u.user_id)}</a>`+(u.anonymous?`<span class="tag">аноним</span>`:"")+(u.is_test?`<span class="tag">тест</span>`:"")),
+        td(esc(u.plan_id||"нет")),R(n(u.messages)),R(n(u.requests)),R(n(u.tokens)),R(usd(u.cost_usd)),R(n(u.credits_remaining)),td(esc(u.last_at)),
+        td(`<a data-msguser="${esc(u.user_id)}">сообщения</a>`)))):`<div class="empty">Нет данных за этот период.</div>`)+
+    `<p class="note">Здесь только токены и деньги. Сами тексты на вкладке «Сообщения».</p>`+
+    `<h2>Лимиты, сейчас</h2><div class="kpis">
+      ${kpi("Free без кредитов",n(l.at_limit_free))}
+      ${kpi("Платные без кредитов",n(l.at_limit_paid))}
+      ${kpi("Израсходовали 80% и больше",n(l.near_limit))}
+      ${kpi("Без кредитов и писали за период",n(l.at_limit_and_active))}
+    </div><p class="note">Снимок по user_credits. Сколько раз человек реально упёрся в лимит, сервер не записывает: это событие <code>v1_token_limit_reached</code> в Mixpanel.</p>`;
+}
+
+function viewFeatures(d){
+  const f=d.sections.features; if(f.error) return secErr(f);
+  const r=f.receipts||{},p=f.plaid||{},w=f.wallets||{},s=f.streak||{},b=f.backups||{},c=f.cards||{};
+  return `<h2>Чеки, голос, карточки</h2><div class="kpis">
+      ${kpi("Чеки",n(r.n),"за период, "+n(r.users)+" человек")}
+      ${kpi("Голос",ND,"на устройстве, см. Mixpanel")}
+      ${kpi("Карточек предложено",n(c.proposed),"за период")}
+      ${kpi("Карточек принято",n(c.accepted),(pct(c.accepted,c.proposed)||"0%")+", отклонено "+n(c.dismissed))}
+    </div>
+    <h2>Банки (Plaid)</h2><div class="kpis">
+      ${kpi("Подключений",n(p.total),n(p.users)+" человек")}
+      ${kpi("Работают",n(p.active))}
+      ${kpi("Просят войти заново",n(p.needs_reauth))}
+      ${kpi("Отключены",n(p.other))}
+      ${kpi("Новые",n(p.new),"за период")}
+    </div>`+((p.institutions||[]).length?tbl(["Банк",">Подключений"],p.institutions.map(i=>tr(td(esc(i.name)),R(n(i.n))))):"")+
+    `<h2>Общие кошельки</h2><div class="kpis">
+      ${kpi("Кошельков",n(w.total),n(w.running)+" работают")}
+      ${kpi("Со вторым участником",n(w.with_second_member))}
+      ${kpi("Участников",n(w.members))}
+      ${kpi("Новые кошельки",n(w.new),"за период")}
+      ${kpi("Новые операции",n(w.transactions_new),"за период")}
+      ${kpi("Приглашения",n(w.invites_new),"за период, принято "+n(w.invites_used))}
+    </div>
+    <h2>Награды за серию</h2><div class="kpis">
+      ${kpi("Выдано",n(s.total),n(s.users)+" человек")}
+      ${kpi("Новые",n(s.new),"за период")}
+      ${(s.by_milestone||[]).map(x=>kpi("Отметка "+esc(x.milestone)+" дней",n(x.n))).join("")}
+    </div>
+    <h2>Резервные копии</h2><div class="kpis">
+      ${kpi("Людей с копией",n(b.users),"сейчас")}
+      ${kpi("Обновили копию",n(b.changed),"за период")}
+      ${kpi("Весят всего",bytes(b.bytes_total),"в среднем "+bytes(b.bytes_avg)+", самая большая "+bytes(b.bytes_max))}
+      ${kpi("Копий в истории",n(b.history_copies),n(b.history_users)+" человек, "+bytes(b.history_bytes))}
+      ${kpi("Новых в истории",n(b.history_new),"за период")}
+    </div>`+((b.by_version||[]).length?tbl(["Сборка приложения",">Копий"],b.by_version.map(v=>tr(td(esc(v.version)),R(n(v.n))))):"")+
+    `<h2>Уведомления</h2>`+((f.push||[]).length?tbl(["Среда",">Устройств"],f.push.map(x=>tr(td(esc(x.environment||"не указана")),R(n(x.n))))):`<div class="empty">Нет данных.</div>`);
+}
+
+function viewHealth(d){
+  const h=d.sections.health; if(h.error) return secErr(h);
+  const fr=h.freshness||{},pv=h.privacy||{},cp=d.capture||{};
+  const mode=(v)=>({off:"выключена",test:"только тестовые",all:"все пользователи"}[v]||"неизвестно");
+  return `<h2>Когда данные приходили в последний раз (UTC)</h2><div class="kpis">
+      ${kpi("Сообщение в чате",fr.chat?esc(fr.chat):ND)}
+      ${kpi("Регистрация",fr.signup?esc(fr.signup):ND)}
+      ${kpi("Событие RevenueCat",fr.rc_webhook?esc(fr.rc_webhook):ND)}
+      ${kpi("Резервная копия",fr.backup?esc(fr.backup):ND)}
+    </div>
+    <h2>Ошибки за период</h2><div class="kpis">
+      ${kpi("Ошибки чата",n(h.chat_errors),"agent_error")}
+      ${kpi("Копии резко уменьшились",n(h.backups_shrunk),"меньше половины прошлой, сейчас")}
+      ${kpi("Сбои отправки копий",ND,"на сервер не попадают")}
+    </div>`+SLOT_LOGS+
+    `<div class="two"><div><h2>Задачи по расписанию</h2>`+(Array.isArray(h.cron)?(h.cron.length?tbl(["Задача",">Запусков",">Сбоев","Последний"],h.cron.map(c=>tr(td(esc(c.jobname)),R(n(c.runs)),R(n(c.failed)),td(esc(c.last_at))))):`<div class="empty">За этот период запусков нет.</div>`):`<div class="empty">Нет данных: расписание недоступно.</div>`)+
+    `</div><div><h2>Вебхуки: записи в журнале</h2>`+((h.webhook_logs||[]).length?tbl(["Код",">Записей",">С ошибкой","Последняя"],h.webhook_logs.map(w=>tr(td(esc(w.webhook_code)),R(n(w.n)),R(n(w.with_error)),td(esc(w.last_at))))):`<div class="empty">За этот период записей нет.</div>`)+
+    `<p class="note">revenuecat.stray_sandbox: тестовая покупка пользователя, которого нет на этом сервере. Это ожидаемо.</p></div></div>`+
+    `<h2>Запись переписки</h2>`+tbl(["Что",">Значение"],[
+      tr(td("Запись переписки в chat_messages (TRANSCRIPT_LOGGING)"),R(esc(mode(cp.transcript_logging)))),
+      tr(td("Запись текста в llm_io_debug (IO_CAPTURE)"),R(esc(mode(cp.io_capture)))),
+      tr(td("Запросов с текстом не из test_accounts в llm_io_debug"),R(n(pv.io_rows_ordinary))),
+      tr(td("Людей в этих запросах"),R(n(pv.io_users_ordinary))),
+      tr(td("Из них за период"),R(n(pv.io_rows_ordinary_in_window))),
+      tr(td("Последний такой запрос"),R(pv.io_last_at?esc(pv.io_last_at):"нет")),
+      tr(td("Строк не из test_accounts в chat_messages"),R(n(pv.chat_rows_ordinary))),
+      tr(td("В списке test_accounts"),R(n(h.test_accounts))),
+      tr(td("Людей с тестовым токеном уведомлений"),R(n(h.sandbox_users))),
+    ])+`<p class="note">IO_CAPTURE = все пользователи: пишется текст каждого сообщения и ответа, в том числе у анонимных. Уведомление в приложении зависит от другого переключателя, TRANSCRIPT_LOGGING, поэтому при такой записи его не показывают.</p><p class="note">Тестовые в этой панели: список test_accounts плюс устройства со сборками TestFlight и отладки (токен sandbox). Тестер, запретивший уведомления, считается реальным, пока его нет в списке.</p>`;
+}
+
+// ---------- сообщения ----------
+function msgFilters(){
+  const m=st.msg;
+  const opt=(v,l,cur)=>`<option value="${v}"${String(cur)===String(v)?" selected":""}>${l}</option>`;
+  const chosen=[];
+  if(m.user) chosen.push(`человек ${sid(m.user)}`);
+  if(m.session) chosen.push(`сессия ${sid(m.session)}`);
+  return `<div class="fil">
+    <label>Порядок <select id="msort">${opt("newest","Сначала новые",m.sort)}${opt("longest","Сначала длинные",m.sort)}</select></label>
+    <label>Кто <select id="mrole">${opt("all","Все",m.role)}${opt("user","Человек",m.role)}${opt("assistant","Ассистент",m.role)}</select></label>
+    <label>Длина <select id="mmin">${opt(0,"Любая",m.minLen)}${opt(500,"от 500 знаков",m.minLen)}${opt(1000,"от 1000 знаков",m.minLen)}${opt(2000,"от 2000 знаков",m.minLen)}${opt(4000,"от 4000 знаков",m.minLen)}</select></label>
+    <label>Откуда <select id="msrc">${opt("all","Обе таблицы",m.source)}${opt("llm_io_debug","llm_io_debug",m.source)}${opt("chat_messages","chat_messages",m.source)}</select></label>
+    ${chosen.length?`<span class="note" style="margin:0">Показан: ${chosen.join(", ")}</span> <button id="mreset">Показать всех</button>`:""}
   </div>`;
-  const parts=[{label:"Input",v:cb.input,c:"#1d9e75"},{label:"Output",v:cb.output,c:"#2f6fb0"},{label:"Cache-read",v:cb.cache_read,c:"#b5791a"},{label:"Cache-write",v:cb.cache_write,c:"#6d5bd0"}].filter(p=>+p.v>0);
-  const legend=parts.map(p=>`<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:3px 0"><span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${p.c};margin-right:7px"></span>${p.label}</span><span class="b">${usd(p.v)} <span class="muted">(${pct(p.v,cost)})</span></span></div>`).join("");
-  const burden=`<div class="panel"><h3>Where the cost goes</h3><div style="display:flex;gap:16px;align-items:center"><div style="width:150px;height:150px;flex:none"><canvas id="cbd"></canvas></div><div style="flex:1">${legend}</div></div></div>`;
-  const ins=insights(o);
-  const trend=`<div class="panel"><h3>Daily cost</h3><div style="height:200px"><canvas id="byday"></canvas></div></div>`;
-  const kinds=`<div class="panel"><h3>By operation kind</h3><table><tr><th>kind</th><th class="r">requests</th><th class="r">cost</th><th class="r">share</th></tr>${(o.by_kind||[]).map(k=>`<tr><td>${esc(k.kind)}</td><td class="r">${n(k.reqs)}</td><td class="r b">${usd(k.cost)}</td><td class="r">${pct(k.cost,cost)}</td></tr>`).join("")}</table></div>`;
-  return cards+`<div class="grid2">${burden}<div class="panel"><h3>Conclusions</h3><div class="insights">${ins}</div></div></div>`+economics(o)+`<div class="grid2">${trend}${kinds}</div>`;
+}
+function msgRow(r){
+  const long=r.length>700;
+  const body=long
+    ?`<details><summary>${esc(String(r.text).slice(0,360))}... <span class="more"><span class="o">показать полностью (${n(r.length)} знаков)</span><span class="c">свернуть</span></span></summary><div class="t">${esc(r.text)}</div></details>`
+    :`<div class="t">${esc(r.text)}</div>`;
+  const who=r.role==="assistant"?"Ассистент":r.role==="system"?"Система":"Человек";
+  return `<div class="m ${esc(r.role)}"><div class="h"><b>${who}</b><span>${esc(r.created_at)}</span><span>${n(r.length)} знаков</span>
+    <a data-msguser="${esc(r.user_id)}">человек ${sid(r.user_id)}</a>${r.session_id?`<a data-msgsession="${esc(r.session_id)}">сессия ${sid(r.session_id)}</a>`:""}
+    ${r.model?`<span>${esc(String(r.model).replace(/^claude-/,""))}</span>`:""}<span class="tag">${esc(r.source)}</span>
+    ${r.anonymous?`<span class="tag">аноним</span>`:""}${r.is_test?`<span class="tag">тест</span>`:""}${r.truncated?`<span class="tag w">обрезано при записи</span>`:""}${r.kind&&r.kind!=="agent"?`<span class="tag">${esc(r.kind)}</span>`:""}</div>${body}</div>`;
+}
+function viewMessages(){
+  const m=st.msg,d=m.data,cap=m.capture||{};
+  const mode=(v)=>({off:"выключена",test:"только тестовые",all:"все пользователи"}[v]||"неизвестно");
+  const switches=`IO_CAPTURE: ${esc(mode(cap.io_capture))}. TRANSCRIPT_LOGGING: ${esc(mode(cap.transcript_logging))}.`;
+  if(+d.stored_chat_messages===0&&+d.stored_io_turns===0){
+    return `<div class="empty"><b>На этом сервере пока нет ни одного сохранённого сообщения.</b> Таблицы llm_io_debug и chat_messages пусты. Запись: ${switches}
+      <p class="note" style="margin:6px 0 0">Страница заполнится сама, как только люди напишут в чат при включённой записи. Токены и расходы по каждому человеку уже есть на вкладках «Чат ИИ», «Люди» и «Сессии».</p></div>`;
+  }
+  const idx=d.index||{};
+  const users=(idx.users||[]),sess=(idx.sessions||[]);
+  return msgFilters()+
+    `<p class="note">Найдено ${n(d.total)}, самое длинное ${n(d.longest)} знаков. На сервере: ${n(d.stored_io_turns)} ходов в llm_io_debug, ${n(d.stored_chat_messages)} строк в chat_messages. Запись: ${switches} Период сверху действует, кроме случая, когда открыта одна сессия. Это личная переписка: читаем для улучшения чата и никуда не копируем.</p>`+
+    `<h2>Люди</h2>`+(users.length?tbl(["Человек",">От человека",">Всего строк",">Сессий",">Самое длинное","Последнее"],users.map(u=>tr(td(`<a data-msguser="${esc(u.user_id)}">${sid(u.user_id)}</a>`+(u.anonymous?`<span class="tag">аноним</span>`:"")+(u.is_test?`<span class="tag">тест</span>`:"")),R(n(u.from_user)),R(n(u.messages)),R(n(u.sessions)),R(n(u.longest)),td(esc(u.last_at))))):`<div class="empty">За этот период никого.</div>`)+
+    (m.user?`<h2>Сессии человека ${sid(m.user)}</h2>`+(sess.length?tbl(["Сессия",">От человека",">Всего строк",">Самое длинное","Начало","Конец"],sess.map(s=>tr(td(s.session_id?`<a data-msgsession="${esc(s.session_id)}">${sid(s.session_id)}</a>`:"без сессии"),R(n(s.from_user)),R(n(s.messages)),R(n(s.longest)),td(esc(s.first_at)),td(esc(s.last_at))))):`<div class="empty">За этот период сессий нет.</div>`):"")+
+    `<h2>Сообщения</h2>`+(m.rows.length?`<div class="msgs">${m.rows.map(msgRow).join("")}</div>`+(m.rows.length<+d.total?`<p><button id="mmore">Показать ещё (${n(+d.total-m.rows.length)})</button></p>`:""):`<div class="empty">С такими условиями ничего не найдено.</div>`);
+}
+async function loadMessages(append){
+  const m=st.msg,w=windowDates();
+  const p={view:"messages",sort:m.sort,role:m.role,min_len:String(m.minLen),source:m.source,limit:"50",offset:String(m.offset),from:w.from,to:w.to};
+  if(m.user)p.user=m.user; if(m.session)p.session=m.session;
+  const j=await call(p);
+  m.data=j.data;m.capture=j.capture;
+  m.rows=append?m.rows.concat(j.data.rows||[]):(j.data.rows||[]);
 }
 
-// ---- #8: token economics — cost per message, messages per $1.50, plan limits, metering check ----
-// 1 credit = $0.005 of tokens; each turn debits max(1, ceil(cost / $0.005)).  Mirrors core.ts.
-const CREDIT_USD = 0.005;
-// public.billing_plans (id / credits_per_period / price_hint)
-const PLANS = [
-  { name: "Lite",  credits: 400,  price: 9.99,  hint: "$9.99 / mo" },
-  { name: "Plus",  credits: 1200, price: 19.99, hint: "$19.99 / mo" },
-];
-
-function economics(o){
-  const card=(l,v,s)=>`<div class="card"><div class="cv">${v}</div><div class="cl">${esc(l)}</div>${s?`<div class="cs">${s}</div>`:""}</div>`;
-  const cost=+o.cost_usd||0, reqs=+o.requests||0, creds=+o.credits||0;
-  const inTok=+o.input||0, outTok=+o.output||0;
-  const avgCost   = reqs ? cost/reqs : 0;
-  const avgTokens = reqs ? (inTok+outTok)/reqs : 0;
-  const avgCred   = reqs ? creds/reqs : 0;
-  const msgs150   = avgCost ? 1.50/avgCost : 0;          // «сколько сообщений, чтобы потратить $1.50»
-  // COMPARE LIKE WITH LIKE. This used to divide TOTAL cost by credits debited, while ~16% of turns
-  // are never debited at all (anonymous-auth users). Their cost sat in the numerator and their
-  // credits could not sit in the denominator, so the ratio read 0.94x under a caption calling that
-  // under-charging. Falls back to total cost only for an older admin_overview that cannot answer.
-  const chargedCost = o.debited_cost_usd!=null ? +o.debited_cost_usd : cost;
-  const unCost      = +(o.undebited_cost_usd ?? 0);
-  const implied     = chargedCost / CREDIT_USD;
-  const overhead    = implied ? creds/implied : 0;
-
-  const cards=`<div class="cards">
-    ${card("Avg cost / message", usd6(avgCost), n(Math.round(avgTokens))+" tokens per message")}
-    ${card("Messages per $1.50", n(Math.round(msgs150)), "at the current average")}
-    ${card("Avg credits / message", avgCred.toFixed(2), "1 credit = $"+CREDIT_USD.toFixed(3))}
-    ${card("Token in : out", n(inTok)+" : "+n(outTok), outTok ? (inTok/outTok).toFixed(1)+"× more input than output" : "—")}
-  </div>`;
-
-  // Сверка метеринга: списанные кредиты vs кредиты, вытекающие из реальной стоимости токенов.
-  const meter=`<div class="panel"><h3>Credit metering check</h3><table>
-    <tr><th>what</th><th class="r">value</th></tr>
-    <tr><td>Token cost of <b>charged</b> turns</td><td class="r b">${usd(chargedCost)}</td></tr>
-    <tr><td>Credits actually debited</td><td class="r b">${n(creds)}</td></tr>
-    <tr><td>Credits implied by that cost (no rounding)</td><td class="r">${n(Math.round(implied))}</td></tr>
-    <tr><td>Rounding overhead</td><td class="r b">${overhead ? overhead.toFixed(2)+"×" : "—"}</td></tr>
-    ${unCost>0?`<tr><td class="muted">Token cost of turns nobody was charged for</td><td class="r muted">${usd(unCost)}</td></tr>`:""}
-    </table>
-    <p class="muted">Every turn debits <code>max(1, ceil(cost / $0.005))</code>, so debited credits sit ABOVE the token cost of those same turns. That gap is the rounding overhead — expected, not an error. Below 1× would mean under-charging.<br>
-    Uncharged turns are excluded from the ratio on purpose: their cost is real but they have no credits to compare it against, and mixing them in made this read 0.94× when charging was correct.</p></div>`;
-
-  // Таблица лимитов: что план реально даёт пользователю, по ЖИВОМУ среднему.
-  const rows=PLANS.map(p=>{
-    const budget=p.credits*CREDIT_USD;
-    const msgs=avgCred ? Math.round(p.credits/avgCred) : 0;
-    const margin=(p.price&&budget) ? (p.price/budget).toFixed(1)+"×" : "—";
-    return `<tr><td>${esc(p.name)}</td><td class="r">${n(p.credits)}</td><td class="r b">${n(msgs)}</td><td class="r">${usd(budget)}</td><td class="r">${esc(p.hint)}</td><td class="r">${margin}</td></tr>`;
-  }).join("");
-  const limits=`<div class="panel"><h3>Plan limits — what a user actually gets</h3><table>
-    <tr><th>plan</th><th class="r">credits</th><th class="r">≈ messages</th><th class="r">token budget</th><th class="r">price</th><th class="r">margin</th></tr>${rows}
-    </table>
-    <p class="muted">“≈ messages” uses the LIVE average of <b>${avgCred.toFixed(2)}</b> credits/message — it moves with real usage. “Token budget” = credits × $0.005 (what the plan may spend on tokens). “Margin” = price ÷ token budget.</p></div>`;
-
-  return `<div class="panel" style="background:none;border:0;padding:0"><h3>Token economics &amp; plan limits</h3></div>`+cards+`<div class="grid2">${meter}${limits}</div>`;
+// ---------- подробные вкладки ----------
+function modelTag(m){return `<span class="tag">${esc(String(m||"?").replace(/^claude-/,""))}</span>`;}
+const tc=(tok,cost)=>`<div>${n(tok)}</div><div class="nd">${usd(cost)}</div>`;
+function viewLog(rows){
+  if(!rows.length) return `<div class="empty">За этот период запросов нет.</div>`;
+  return `<p class="note">Последние ${n(rows.length)} запросов. Токены сверху, стоимость снизу, цена по model_pricing на день запроса. Фильтр «Кого считать» здесь не действует.</p>`+
+  tbl(["Время","Модель","Кто","Тип",">Вход",">Выход",">Кэш чтение",">Кэш запись",">Всего",">Задержка","Сессия"],rows.map(r=>tr(td(esc(r.ts)),td(modelTag(r.model)),td(esc(r.ident)),td(esc(r.kind)+(r.over_token_ceiling?`<span class="tag w">потолок</span>`:"")),
+    R(tc(r.input_tokens,r.input_cost)),R(tc(r.output_tokens,r.output_cost)),R(tc(r.cache_read_tokens,r.cache_cost)),R(tc(r.cache_creation_tokens,r.cache_write_cost)),td(usd(r.cost_usd),"r b"),R(n(r.latency_ms)+" мс"),td(r.session_id?`<a data-session="${esc(r.session_id)}">${sid(r.session_id)}</a>`:"-"))));
 }
-function insights(o){
-  const cb=o.cost_breakdown||{}; const cost=+o.cost_usd||0;
-  const pairs=[["input",cb.input,"#1d9e75","Input tokens (system prompt + memory digest sent every turn)"],["output",cb.output,"#2f6fb0","Model output"],["cache_read",cb.cache_read,"#b5791a","Cache reads"],["cache_write",cb.cache_write,"#6d5bd0","Cache writes"]];
-  const top=pairs.filter(p=>+p[1]>0).sort((a,b)=>b[1]-a[1])[0];
-  const out=[];
-  if(top) out.push([top[2],`<b>${top[0].replace("_","-")} is your biggest cost driver</b> — ${usd(top[1])} (${pct(top[1],cost)}). ${top[0]==="input"?"Trimming the system prompt / digest is the highest-leverage saving.":""}`]);
-  const cacheEff=pct(o.cache_read,(+o.input)+(+o.cache_read));
-  out.push(["#b5791a",`Caching serves <b>${cacheEff}</b> of input tokens at a tenth of the base input rate — meaningful savings already.`]);
-  if(+o.cache_write===0) out.push(["#b4453c",`<b>Cache-write tokens read 0</b> — they aren't captured in older rows. After the proxy update they'll show here (Anthropic bills a cache write at 1.25x the base input rate).`]);
-  // WAS: "0 anonymous requests logged — ... wasn't recorded". Both halves were wrong. `anon_requests`
-  // counts rows with no user_id, which is nobody: an anonymous-AUTH user still has an id. And those
-  // turns are recorded — they are simply never debited. 278 of them, $1.32, invisible until now.
-  const und=+(o.undebited_requests ?? 0), undC=+(o.undebited_cost_usd ?? 0);
-  if(und>0) out.push(["#3f5a78",`<b>${n(und)} turns (${pct(und,o.requests)}) cost ${usd(undC)} and were never charged</b> — anonymous-auth users have no credit row. Intended, but it is real spend with no credit against it.`]);
-  else out.push(["#3f5a78",`Every request in this window was charged against a credit balance.`]);
-  out.push(["#1d9e75",`Average turn costs <b>${usd(cost/(o.requests||1))}</b>; ${pct(o.ceiling_hits,o.requests)} of turns hit the per-turn token ceiling.`]);
-  return out.map(([c,t])=>`<div class="ins"><span class="dot" style="background:${c}"></span><span>${t}</span></div>`).join("");
+function viewSpending(rows){
+  const chips=`<div class="fil"><label>Группировать <select id="sgroup">${GROUPS.map(([v,l])=>`<option value="${v}"${v===st.group?" selected":""}>${l}</option>`).join("")}</select></label></div>`;
+  if(!rows.length) return chips+`<div class="empty">За этот период расходов нет.</div>`;
+  const total=rows.reduce((s,r)=>s+ +r.cost_usd,0);
+  const cell=(r)=>(st.group==="session"&&/^[0-9a-f-]{36}$/.test(String(r.grp)))?`<a data-session="${esc(r.grp)}">${sid(r.grp)}</a>`:esc(r.grp);
+  return chips+`<p class="note">${n(rows.length)} групп, всего ${usd(total)}. Фильтр «Кого считать» здесь не действует.</p>`+
+    tbl(["Группа",">Запросы",">Людей",">Устройств",">Расход",">Доля","Первый","Последний"],rows.map(r=>tr(td(cell(r)),R(n(r.turns)),R(n(r.users)),R(n(r.devices)),td(usd(r.cost_usd),"r b"),R(pct(r.cost_usd,total)),td(esc(r.first_at)),td(esc(r.last_at)))));
 }
-function paintOverview(o){
-  const cb=o.cost_breakdown||{};
-  donut("cbd",[{label:"Input",v:cb.input,c:"#1d9e75"},{label:"Output",v:cb.output,c:"#2f6fb0"},{label:"Cache-read",v:cb.cache_read,c:"#b5791a"},{label:"Cache-write",v:cb.cache_write,c:"#6d5bd0"}].filter(p=>+p.v>0));
-  const days=(o.by_day||[]).slice().reverse();
-  bars("byday",days.map(d=>d.day.slice(5)),days.map(d=>+d.cost));
+function viewCards(rows){
+  if(!rows||!rows.length) return `<div class="empty">Карточек за этот период нет.</div>`;
+  const secs=(v)=>v==null?"-":(+v<90?Math.round(+v)+" с":Math.round(+v/60)+" мин");
+  const t=rows.reduce((a,r)=>{["proposed","confirmed","edited","dismissed","pending","legacy","incomplete"].forEach(k=>a[k]+=+r[k]||0);return a;},{proposed:0,confirmed:0,edited:0,dismissed:0,pending:0,legacy:0,incomplete:0});
+  const answerable=t.proposed-t.legacy,accepted=t.confirmed+t.edited;
+  return `<p class="note">Предложено ${n(t.proposed)}${t.legacy?` (${n(t.legacy)} ушли в старые сборки, которые не сообщают ответ, в проценты не входят)`:""}. Принято ${pct(accepted,answerable)||"0%"}, из них ${n(t.edited)} после правки. Отклонено ${pct(t.dismissed,answerable)||"0%"}. Без ответа больше часа: ${n(t.pending)}. Фильтр «Кого считать» здесь не действует.</p>`+
+  tbl(["Тип",">Предложено",">Подтверждено",">С правкой",">Отклонено",">Без ответа",">Старые сборки",">Принято",">Неполные",">Время решения"],rows.map(r=>{const acc=(+r.confirmed||0)+(+r.edited||0),ans=(+r.proposed||0)-(+r.legacy||0);return tr(td(esc(r.kind)),R(n(r.proposed)),R(n(r.confirmed)),R(n(r.edited)),R(n(r.dismissed)),R(n(r.pending)),R(n(r.legacy)),td(pct(acc,ans)||"-","r b"),R(n(r.incomplete)),R(secs(r.median_seconds)));}))+
+  `<p class="note">«С правкой»: карточка оказалась неточной, человек поправил её перед сохранением. Много таких значит проблему в промпте. «Неполные»: не хватало обязательного поля.</p>`;
 }
-
-// Short label for the model a row was priced at. Unknown models are NOT silently blanked — they get
-// the neutral chip and their raw name, because an unpriced model is exactly the thing worth seeing.
-function modelChip(m){
-  const s=String(m||"");
-  if(s==="claude-sonnet-5")   return `<span class="mdl m5" title="${esc(s)} · $2 / $10 / $0.20 / $2.50 per Mtok">S5</span>`;
-  if(s==="claude-sonnet-4-6") return `<span class="mdl m46" title="${esc(s)} · $3 / $15 / $0.30 / $3.75 per Mtok">S4.6</span>`;
-  return `<span class="mdl mx" title="${esc(s)} — no price row; costed from the '*' fallback">${esc(s.replace(/^claude-/,"")||"?")}</span>`;
-}
-// tokens above, dollars below — the fact and the number derived from it, in one column.
-function tc(tok,usd){ return `<div class="tk">${n(tok)}</div><div class="amt b">${usd6(usd)}</div>`; }
-
-function logTable(rows){
-  if(!rows.length) return `<p class="muted">No requests in this window.</p>`;
-  return `<p class="muted">Most recent ${rows.length} requests · tokens above, cost below. Each row is priced at the rate in force on its own date for <b>its own model</b> (<code>model_pricing</code>) — Sonnet 5 $2 / $10 / $0.20 / $2.50 per million, Sonnet 4.6 was $3 / $15 / $0.30 / $3.75. Two models at different rates share this table, so the chip is what makes a row's dollars readable.</p>
-  <table><tr>
-    <th>timestamp</th><th>model</th><th>who</th><th>kind</th>
-    <th class="r">input</th><th class="r">output</th><th class="r">cache read</th><th class="r">cache write</th>
-    <th class="r">tokens</th><th class="r">total $</th><th class="r">latency</th><th>session</th>
-  </tr>${rows.map(r=>{
-    const tot = Number(r.input_tokens||0)+Number(r.output_tokens||0)
-              + Number(r.cache_read_tokens||0)+Number(r.cache_creation_tokens||0);
-    return `<tr>
-      <td>${esc(r.ts)}</td>
-      <td>${modelChip(r.model)}</td>
-      <td>${who(r.ident)}</td>
-      <td>${esc(r.kind)}${r.over_token_ceiling?' <span class="badge">&#9888;</span>':''}</td>
-      <td class="r">${tc(r.input_tokens, r.input_cost)}</td>
-      <td class="r">${tc(r.output_tokens, r.output_cost)}</td>
-      <td class="r">${tc(r.cache_read_tokens, r.cache_cost)}</td>
-      <td class="r">${tc(r.cache_creation_tokens, r.cache_write_cost)}</td>
-      <td class="r b">${n(tot)}</td>
-      <td class="r b">${usd6(r.cost_usd)}</td>
-      <td class="r">${n(r.latency_ms)}ms</td>
-      <td>${r.session_id?`<a data-session="${esc(r.session_id)}">${sid(r.session_id)}</a>`:"&mdash;"}</td>
-    </tr>`;
-  }).join("")}</table>`;
-}
-function who(id){ return id==="anonymous"?`<span class="badge an">anon</span>`:esc(id); }
-function spendingTable(rows){
-  if(!rows.length) return `<p class="muted">No spending in this window.</p>`;
-  const total=rows.reduce((s,r)=>s+ +r.cost_usd,0); const max=Math.max(...rows.map(r=>+r.cost_usd),0.0001);
-  const head={session:"session",device:"device",time:"day",user:"user",kind:"kind"}[st.group];
-  const cell=(r)=>(st.group==="session"&&/^[0-9a-f-]{36}$/.test(String(r.grp)))?`<a data-session="${esc(r.grp)}">${sid(r.grp)}</a>`:who(r.grp);
-  return `<p class="muted">Grouped by <b>${esc(st.group)}</b> · ${rows.length} groups · total ${usd(total)}.</p><table><tr><th>${esc(head)}</th><th class="r">turns</th><th class="r">users</th><th class="r">devices</th><th class="r">cost</th><th class="barcell">share</th><th>first</th><th>last</th></tr>${rows.map(r=>`<tr><td>${cell(r)}</td><td class="r">${n(r.turns)}</td><td class="r">${n(r.users)}</td><td class="r">${n(r.devices)}</td><td class="r b">${usd(r.cost_usd)}</td><td class="barcell"><span class="fill" style="width:${Math.round(+r.cost_usd/max*100)}%"></span><span>${pct(r.cost_usd,total)}</span></td><td>${esc(r.first_at)}</td><td>${esc(r.last_at)}</td></tr>`).join("")}</table>`;
-}
-function limitStatus(u){ // #4 — approaching = ≥80% of allowance used; at limit = none left
-  const cap=+u.credits||0; if(!cap||u.credits_remaining==null) return "—";
-  const rem=+u.credits_remaining;
-  if(rem<=0) return '<span class="badge">⛔ at limit</span>';
-  if((cap-rem)/cap>=0.8) return '<span class="badge">⚠︎ approaching</span>';
-  return "OK";
-}
-// Apple's cut on a subscription. Margin is computed on what actually lands, not the sticker price.
-const APPLE_CUT = 0.15;
-
-// A paid plan on an anonymous account: they bought, but never secured an account, so a reinstall
-// loses their access and the first you hear of it is a refund request. Their entitlement only
-// survives if RevenueCat's TRANSFER webhook lands — and that has silently failed here before.
-function anonPaid(u){ return u.is_anonymous === true && (u.plan_id === "lite" || u.plan_id === "plus"); }
-
-// What this user is worth against what they cost us this window. Null unless we know both.
-function userMargin(u){
-  const plan = PLANS.find(p => p.name.toLowerCase() === String(u.plan_id||"").toLowerCase());
-  if(!plan) return null;
-  const net = plan.price * (1 - APPLE_CUT);
-  const cost = +u.cost_usd || 0;
-  return { net, cost, pct: (net - cost) / net * 100 };
-}
-
-// Cards — what the coach proposed and what the user did about it (admin_cards).
-// Rates are quoted against the population that CAN answer: a card sent to a build older than
-// outcome reporting is counted under "can\'t report" and kept out of every percentage, otherwise
-// the whole funnel reads as a product failure while those builds are still in users\' hands.
-// Read-only cards (charts, advisories) never reach this table — nobody was asked to answer them.
-function cardsTable(rows){
-  if(!rows||!rows.length) return `<p class="muted">No cards yet. Rows appear once the proxy that records them is deployed; outcomes ride along on the app\'s NEXT turn, so a fresh confirm takes a while to show up.</p>`;
-  const secs=(v)=>v==null?"—":(+v<90?Math.round(+v)+"s":Math.round(+v/60)+"m");
-  const t=rows.reduce((a,r)=>{["proposed","confirmed","edited","dismissed","pending","legacy","incomplete"].forEach(k=>a[k]+=+r[k]||0);return a;},
-                      {proposed:0,confirmed:0,edited:0,dismissed:0,pending:0,legacy:0,incomplete:0});
-  const answerable=t.proposed-t.legacy, accepted=t.confirmed+t.edited;
-  const head=`<p class="muted">${n(t.proposed)} cards proposed${t.legacy?` (${n(t.legacy)} to builds that can\'t report — excluded from the rates)`:""} · <b>${pct(accepted,answerable)} accepted</b> (${n(t.edited)} needed correcting first) · ${pct(t.dismissed,answerable)} thrown away · ${n(t.pending)} unanswered after an hour.</p>`;
-  return head+`<table><tr><th>kind</th><th class="r">proposed</th><th class="r">confirmed</th><th class="r">edited</th><th class="r">dismissed</th><th class="r">unanswered</th><th class="r">can\'t report</th><th class="r">accepted</th><th class="r">incomplete</th><th class="r">median decision</th></tr>${
-    rows.map(r=>{
-      const acc=(+r.confirmed||0)+(+r.edited||0), ans=(+r.proposed||0)-(+r.legacy||0);
-      return `<tr><td>${esc(r.kind)}</td><td class="r">${n(r.proposed)}</td><td class="r">${n(r.confirmed)}</td><td class="r">${n(r.edited)}</td><td class="r">${n(r.dismissed)}</td><td class="r">${n(r.pending)}</td><td class="r">${n(r.legacy)}</td><td class="r b">${pct(acc,ans)}</td><td class="r">${+r.incomplete>0?`<span class="badge">⚠︎ ${n(r.incomplete)}</span>`:"0"}</td><td class="r">${secs(r.median_seconds)}</td></tr>`;
-    }).join("")}</table>
-  <p class="muted">“edited” means the card was wrong enough that the user corrected it before saving — a high number there is a prompt problem, not a UI one. “incomplete” counts cards that arrived missing a required parameter, which is what a truncated turn looks like from the server.</p>`;
-}
-function usersTable(rows){
-  if(!rows.length) return `<p class="muted">No usage in this window.</p>`;
-  const sorted=[...rows].sort((a,b)=>(+b.cost_usd||0)-(+a.cost_usd||0)); // #4 — highest cost first
+function viewPeople(rows){
+  if(!rows.length) return `<div class="empty">За этот период никто не пользовался чатом.</div>`;
+  const sorted=[...rows].sort((a,b)=>(+b.cost_usd||0)-(+a.cost_usd||0));
+  const anonPaid=(u)=>u.is_anonymous===true&&/^(lite|plus)/.test(String(u.plan_id||""));
   const flagged=sorted.filter(anonPaid).length;
-  // Every field below already existed in the database; the Users tab just never asked for it.
-  // period_end / credits_topup / is_anonymous arrive from admin_users — older deploys omit them,
-  // so each cell falls back to "—" rather than rendering "undefined".
-  const warn=flagged?`<p class="muted" style="color:#b45309"><b>${flagged}</b> paid ${flagged===1?"account is":"accounts are"} still anonymous — they lose access on reinstall unless RevenueCat's TRANSFER lands.</p>`:"";
-  return `<p class="muted">Sorted by cost (highest first). Email → iCloud anchor → anon id. Click a user to see their sessions.</p>${warn}<table><tr><th>user</th><th>plan</th><th>renews</th><th>status</th><th class="r">reqs</th><th class="r">cost</th><th class="r">month left</th><th class="r">top-up</th><th class="r">margin</th><th>last seen</th></tr>${sorted.map(u=>{
-    const m=userMargin(u);
-    // credits_remaining is already (monthly left + top-up), so the monthly half is the difference —
-    // no need for credits_used. Without credits_topup (older deploy) fall back to the sum as-is.
-    const monthLeft=(u.credits_remaining==null) ? "—"
-      : (u.credits_topup==null ? n(u.credits_remaining) : n(Math.max(u.credits_remaining-u.credits_topup,0)));
-    return `<tr>
-      <td><a data-user="${esc(u.user_id)}">${esc(u.ident)}</a>${u.is_test?' <span class="badge">test</span>':''}${anonPaid(u)?' <span class="badge" style="background:#fee2e2;color:#b91c1c">paid · anon</span>':''}</td>
-      <td>${esc(u.plan_id||"—")}</td>
-      <td>${esc(u.period_end||"—")}</td>
-      <td>${limitStatus(u)}</td>
-      <td class="r">${n(u.reqs)}</td>
-      <td class="r b">${usd(u.cost_usd)}</td>
-      <td class="r">${monthLeft}</td>
-      <td class="r">${u.credits_topup?n(u.credits_topup):"—"}</td>
-      <td class="r">${m?`${m.pct.toFixed(1)}%`:"—"}</td>
-      <td>${esc(u.last_seen)}</td></tr>`;
-  }).join("")}</table>
-  <p class="muted">“month left” is the plan's own allowance, “top-up” the purchased credits beside it — the app only ever sees their sum. “Margin” = (price − Apple's ${Math.round(APPLE_CUT*100)}% − this window's token cost) ÷ price after Apple.</p>`;
+  return `<p class="note">Сначала самые дорогие. Только метаданные и расход. Фильтр «Кого считать» здесь не действует.</p>`+(flagged?`<div class="warnbox"><b>${n(flagged)}</b> с платным планом всё ещё анонимны: при переустановке они потеряют доступ, если не дойдёт TRANSFER из RevenueCat.</div>`:"")+
+  tbl(["Человек","План","Продление",">Запросы",">Расход",">Осталось",">Докупил","Последний раз",""],sorted.map(u=>tr(
+    td(`<a data-user="${esc(u.user_id)}">${esc(u.ident)}</a>`+(u.is_test?`<span class="tag">тест</span>`:"")+(anonPaid(u)?`<span class="tag w">платит, аноним</span>`:"")),
+    td(esc(u.plan_id||"-")),td(esc(u.period_end||"-")),R(n(u.reqs)),td(usd(u.cost_usd),"r b"),R(u.credits_remaining==null?"-":n(u.credits_remaining)),R(u.credits_topup?n(u.credits_topup):"-"),td(esc(u.last_seen)),
+    td(`<a data-msguser="${esc(u.user_id)}">сообщения</a>`))));
 }
-function sessionsTable(rows){
-  const head=st.user?`<p class="muted">Sessions for ${sid(st.user)} · <a data-user="">all users</a></p>`:"";
-  if(!rows.length) return head+`<p class="muted">No sessions with a session_id yet — they populate once a TestFlight build with the new client (it stamps <code>x-aisance-session</code>) ships.</p>`;
-  return head+`<table><tr><th>session</th><th>user</th><th>device</th><th class="r">turns</th><th class="r">cost</th><th>started</th><th>ended</th></tr>${rows.map(s=>`<tr><td><a data-session="${esc(s.session_id)}">${sid(s.session_id)}</a></td><td>${who(s.ident)}</td><td>${s.device_id?sid(s.device_id):"—"}</td><td class="r">${n(s.turns)}</td><td class="r b">${usd(s.cost_usd)}</td><td>${esc(s.started)}</td><td>${esc(s.ended)}</td></tr>`).join("")}</table>`;
+function viewSessions(rows){
+  const head=st.user?`<p class="note">Сессии человека ${sid(st.user)}. <a data-user="">Все люди</a></p>`:"";
+  if(!rows.length) return head+`<div class="empty">За этот период сессий нет.</div>`;
+  return head+tbl(["Сессия","Человек","Устройство",">Запросы",">Расход","Начало","Конец"],rows.map(s=>tr(td(`<a data-session="${esc(s.session_id)}">${sid(s.session_id)}</a>`),td(esc(s.ident)),td(s.device_id?sid(s.device_id):"-"),R(n(s.turns)),td(usd(s.cost_usd),"r b"),td(esc(s.started)),td(esc(s.ended)))));
 }
-// Render the CARDS a turn actually showed. A card-only turn logs the full {widgets, proposals}
-// payload into output_text (claude-proxy-agent logIO), so parse it and draw each as a compact widget
-// block — the dashboard then SHOWS the card the user saw, not a blank "(card response)" line. Returns
-// "" when output_text isn't a card payload (a plain text turn, or a raw debug dump), so callers fall
-// back to the text path.
-function renderCards(outputText){
-  if(!outputText) return "";
-  let obj; try{ obj=JSON.parse(outputText); }catch{ return ""; }
-  if(!obj||typeof obj!=="object") return "";
-  const items=[
-    ...(Array.isArray(obj.widgets)?obj.widgets:[]).map(w=>({kind:(w&&(w.kind||w.type))||"widget", data:(w&&(w.props||w.payload))||w})),
-    ...(Array.isArray(obj.proposals)?obj.proposals:[]).map(p=>({kind:(p&&p.kind)||"proposal", data:(p&&p.payload)||p})),
-  ];
-  if(!items.length) return "";
-  return items.map(c=>{
-    const d=c.data;
-    const rows=(d&&typeof d==="object"&&!Array.isArray(d))
-      ? Object.entries(d).map(([k,v])=>`<div class="mwr"><span class="k">${esc(k)}</span><span class="v">${esc(typeof v==="object"?JSON.stringify(v):String(v))}</span></div>`).join("")
-      : (d!=null&&String(d)!=="[object Object]"?`<div class="mwr"><span class="v">${esc(String(d))}</span></div>`:"");
-    return `<div class="mwidget"><div class="mwk">▣ ${esc(c.kind)}</div>${rows}</div>`;
-  }).join("");
+function renderCardPayload(text){
+  if(!text) return "";
+  let o;try{o=JSON.parse(text);}catch(e){return "";}
+  if(!o||typeof o!=="object") return "";
+  const items=[...(Array.isArray(o.widgets)?o.widgets:[]).map(w=>({kind:(w&&(w.kind||w.type))||"карточка",data:(w&&(w.props||w.payload))||w})),...(Array.isArray(o.proposals)?o.proposals:[]).map(p=>({kind:(p&&p.kind)||"предложение",data:(p&&p.payload)||p}))];
+  return items.map(c=>`<pre>${esc(c.kind)}\n${esc(JSON.stringify(c.data,null,1))}</pre>`).join("");
 }
-function ioBlocks(io){
-  if(!io||!io.length) return "";
-  // Costed by the server at the price that was in effect for that model on that day (model_pricing).
-  // It used to be (in*3 + out*15) right here, which quietly overcharged every Sonnet 5 turn by 1.5×
-  // and would have gone stale again the moment any rate moved.
-  const cost=(r)=>+r.cost_usd||0;
-  return `<h3>Chat monitoring (${io.length})</h3><p class="muted">Per turn: user message, AI response, time, tokens, cost, model/mode.</p>`+io.map((r)=>{
-    const um=r.user_message??r.input_text??"", ar=r.ai_response??r.output_text??"";
-    // A card-only turn has no reply text. Newer rows carry a "[card response] …" summary + the card
-    // payload in output_text; older rows (logged before the proxy fix) captured neither, so the
-    // response is genuinely unrecoverable — label it rather than showing a blank bubble that reads
-    // as "the AI said nothing".
-    const cardsHtml=renderCards(r.output_text);
-    const isCardResp=ar.startsWith("[card response]");
-    let arCell;
-    if(cardsHtml){
-      // Full card payload recovered → render the card(s), with the reply text above only if it's a
-      // real message (not the "[card response]" summary placeholder).
-      arCell=(ar.trim()!==""&&!isCardResp?`<div style="margin-bottom:6px">${esc(ar)}</div>`:"")+cardsHtml;
-    }else if(isCardResp){
-      // Only the kind summary survived (payload not captured, e.g. an older row) — show the kinds as
-      // badges rather than the raw "[card response] …" tag.
-      const kinds=ar.replace("[card response]","").split(",").map(s=>s.trim()).filter(Boolean);
-      arCell=kinds.length?kinds.map(k=>`<span class="badge">▣ ${esc(k)}</span>`).join(" "):`<span class="muted" style="font-style:italic">(card response)</span>`;
+function viewSession(d){
+  const reqs=d.requests||[],tx=d.transcript||[],io=d.io||[];
+  const rt=`<h2>Запросы (${n(reqs.length)})</h2>`+(reqs.length?tbl(["Время","Тип","Модель",">Вход $",">Выход $",">Кэш чт. $",">Кэш зап. $",">Всего $",">Задержка"],reqs.map(r=>tr(td(esc(r.ts)),td(esc(r.kind)),td(esc(r.model||"-")),R(usd(r.input_cost,6)),R(usd(r.output_cost,6)),R(usd(r.cache_cost,6)),R(usd(r.cache_write_cost,6)),td(usd(r.cost_usd,6),"r b"),R(n(r.latency_ms)+" мс")))):`<div class="empty">Запросов нет.</div>`);
+  const t=`<h2>Сохранённая переписка (${n(tx.length)})</h2>`+(tx.length?`<div class="msgs">${tx.map(m=>`<div class="m ${esc(m.role)}"><div class="h"><b>${esc(m.role==="assistant"?"Ассистент":m.role==="system"?"Система":"Человек")}</b><span>${esc(m.created_at)}</span>${m.widget_kind?`<span class="tag">${esc(m.widget_kind)}</span>`:""}</div><div class="t">${esc(m.text)}</div></div>`).join("")}</div>`:`<div class="empty">В chat_messages по этой сессии ничего нет.</div>`);
+  const ioh=io.length?`<h2>Запись модели, llm_io_debug (${n(io.length)})</h2><div class="msgs">`+io.map(r=>{
+      const um=r.user_message??"",ar=r.ai_response??"";
+      const cards=renderCardPayload(r.output_text);
+      return `<div class="m"><div class="h"><b>${esc(r.kind||"чат")}</b><span>${esc(r.model||"-")}</span><span>${esc(r.ts||"")}</span><span>${n(r.input_tokens)} / ${n(r.output_tokens)} токенов</span><span>${usd(r.cost_usd,6)}</span></div>
+      <div class="t"><b>Человек:</b> ${esc(um)}</div><div class="t"><b>Ассистент:</b> ${esc(ar)}</div>${cards}</div>`;}).join("")+`</div>`:`<h2>Запись модели</h2><div class="empty">В llm_io_debug по этой сессии ничего нет.</div>`;
+  return `<p class="note"><a data-back="1">Все сессии</a></p>`+rt+t+ioh;
+}
+
+// ---------- отрисовка ----------
+function renderTabs(){
+  $("tabs").innerHTML=TABS.map(([v,l])=>v==="|"?`<span class="tabsep"></span>`:`<button class="tab ${v===st.tab?"on":""}" data-tab="${v}">${l}</button>`).join("");
+  const on=document.querySelector(".tab.on"); if(on) on.scrollIntoView({inline:"center",block:"nearest"});
+}
+const mainEl=()=>$("main");
+let renderTok=0;
+async function render(){
+  const tok=++renderTok;   // a slow answer must not paint over a tab opened after it
+  renderTabs();
+  mainEl().innerHTML=`<p class="note">Загружаю ${esc(SERVERS[st.server].label)}, период ${period()}...</p>`;
+  const w=windowDates();
+  try{
+    let html;
+    if(STATS_TABS.has(st.tab)){
+      if(!st.stats) st.stats=call({view:"stats",from:w.from,to:w.to,audience:st.audience}).catch(e=>{st.stats=null;throw e;});
+      const d=await st.stats;
+      if(!d.sections){ throw new Error("На этом сервере ещё старая версия функции admin-dashboard."); }
+      if(d.project_ref&&d.project_ref!==SERVERS[st.server].ref) throw new Error("Ответил не тот сервер: ожидался "+SERVERS[st.server].ref+".");
+      const head=Object.values(d.sections).filter(s=>s&&s.error).length?`<div class="err">Часть разделов не загрузилась, остальные ниже настоящие.</div>`:"";
+      html=head+({summary:viewSummary,users:viewUsers,money:viewMoney,funnel:viewFunnel,chat:viewChat,features:viewFeatures,health:viewHealth}[st.tab])(d);
+    }else if(st.tab==="messages"){
+      st.msg.offset=0; await loadMessages(false); html=viewMessages();
     }else{
-      arCell=ar.trim()!==""?esc(ar):`<span class="muted" style="font-style:italic">(card response — no text captured for this turn)</span>`;
+      const base={from:w.from,to:w.to,days:"3650"};
+      if(st.tab==="log") html=viewLog((await call({...base,view:"log"})).data||[]);
+      else if(st.tab==="spending") html=viewSpending((await call({...base,view:"spending",group:st.group})).data||[]);
+      else if(st.tab==="cards") html=viewCards((await call({...base,view:"cards"})).data||[]);
+      else if(st.tab==="people") html=viewPeople((await call({...base,view:"users"})).data||[]);
+      else if(st.tab==="sessions"){
+        if(st.session) html=viewSession((await call({view:"session",session:st.session})).data||{});
+        else html=viewSessions((await call({...base,view:"sessions",...(st.user?{user:st.user}:{})})).data||[]);
+      }
     }
-    const dump=(r.user_message!=null&&(r.input_text||r.output_text))?`<details class="iod"><summary>full prompt + raw completion / card payload (debug)</summary><div class="iogrid"><div><div class="iol">INPUT</div><pre>${esc(r.input_text||"")}</pre></div><div><div class="iol">OUTPUT</div><pre>${esc(r.output_text||"")}</pre></div></div></details>`:"";
-    return `<div class="panel" style="border:1px solid var(--line);border-radius:12px;padding:12px;margin:8px 0"><div class="muted" style="font-size:12px;margin-bottom:6px"><b>${esc(r.kind||"chat")}</b> · ${esc(r.model||"—")} · in ${n(r.input_tokens)} / out ${n(r.output_tokens)} tok · ${usd6(cost(r))} · ${esc(r.ts||"")}</div><div class="chat"><div class="msg u"><div class="who">user message</div><div class="bubble">${esc(um)}</div></div><div class="msg a"><div class="who">AI response</div><div class="bubble">${arCell}</div></div></div>${dump}</div>`;
-  }).join("");
+    if(tok!==renderTok) return;
+    mainEl().innerHTML=`<p class="note">Сервер: <b>${esc(SERVERS[st.server].label)}</b>. Период: ${period()}, UTC. ${STATS_TABS.has(st.tab)?"Кого считать: "+esc({real:"реальные",test:"тестовые",all:"все"}[st.audience])+".":""}</p>`+html;
+  }catch(e){
+    if(tok!==renderTok) return;
+    mainEl().innerHTML=`<div class="err">${esc(e.message)}</div>`;
+  }
 }
-function sessionDetail(d){
-  const reqs=d.requests||[],tx=d.transcript||[];
-  // Per-component costs come from admin_session_detail, priced per model per day. The `?? …` keeps
-  // an un-migrated deploy readable rather than printing NaN.
-  const rt=`<h3>Requests (${reqs.length})</h3><table><tr><th>ts</th><th>kind</th><th>model</th><th class="r">in $</th><th class="r">out $</th><th class="r">cache-r $</th><th class="r">cache-w $</th><th class="r">total $</th><th class="r">latency</th></tr>${reqs.map(r=>`<tr><td>${esc(r.ts)}</td><td>${esc(r.kind)}</td><td>${esc(r.model||"—")}</td><td class="r">${r.input_cost==null?"—":usd6(r.input_cost)}</td><td class="r">${r.output_cost==null?"—":usd6(r.output_cost)}</td><td class="r">${r.cache_cost==null?"—":usd6(r.cache_cost)}</td><td class="r">${r.cache_write_cost==null?"—":usd6(r.cache_write_cost)}</td><td class="r b">${r.cost_usd==null?"—":usd6(r.cost_usd)}</td><td class="r">${n(r.latency_ms)}ms</td></tr>`).join("")}</table>`;
-  const t=tx.length?`<h3>Transcript (${tx.length}) — full input &amp; output</h3><div class="chat">${tx.map(m=>`<div class="msg ${m.role==='assistant'?'a':(m.role==='system'?'s':'u')}"><div class="who">${esc(m.role)}${m.widget_kind?` · <span class="badge">${esc(m.widget_kind)}</span>`:""}<span class="ts">${esc(m.created_at)}</span></div><div class="bubble">${esc(m.text)}</div></div>`).join("")}</div>`:`<h3>Transcript</h3><p class="muted">No transcript stored — captured only for allowlisted test accounts on sandbox/TestFlight builds (production stays on-device).</p>`;
-  return `<p class="muted"><a data-back="1">← all sessions</a></p>`+rt+t+ioBlocks(d.io);
-}
+function reload(){st.stats=null;render();}
 
 document.addEventListener("click",(e)=>{
-  const t=e.target.closest("[data-v],[data-d],[data-g],[data-eval],[data-custom],[data-session],[data-user],[data-back]"); if(!t)return;
-  if(t.dataset.v){st.view=t.dataset.v;st.session=null;if(t.dataset.v!=="sessions")st.user=null;}
-  else if(t.dataset.d){st.days=+t.dataset.d;st.from=null;st.to=null;}   // a preset always clears the window
-  else if(t.dataset.custom){
-    if(rangeOn()){ st.from=null; st.to=null; st.days=3650; }            // toggling off returns to "all"
-    else { st.to=isoDay(Date.now()); st.from=isoDay(Date.now()-13*86400000); }
-  }
-  else if(t.dataset.g){st.group=t.dataset.g;}
-  else if(t.dataset.eval!=null){st.eval=!st.eval;}
-  else if(t.dataset.session!=null){st.session=t.dataset.session;st.view="session";}
-  else if(t.dataset.user!=null){st.user=t.dataset.user||null;st.view="sessions";}
-  else if(t.dataset.back){st.view="sessions";st.session=null;}
+  const t=e.target.closest("[data-tab],[data-user],[data-session],[data-back],[data-msguser],[data-msgsession],#mreset,#mmore,#go"); if(!t)return;
+  if(t.id==="go"){store.set("aisance_admin",JSON.stringify({server:st.server,key:$("key").value.trim()}));reload();return;}
+  if(t.id==="mreset"){st.msg.user=null;st.msg.session=null;render();return;}
+  if(t.id==="mmore"){(async()=>{try{st.msg.offset=st.msg.rows.length;await loadMessages(true);mainEl().innerHTML=viewMessages();}catch(err){mainEl().innerHTML=`<div class="err">${esc(err.message)}</div>`;}})();return;}
+  if(t.dataset.tab){st.tab=t.dataset.tab;st.session=null;if(st.tab!=="sessions")st.user=null;}
+  else if(t.dataset.msguser!=null){st.msg.user=t.dataset.msguser;st.msg.session=null;st.tab="messages";}
+  else if(t.dataset.msgsession!=null){st.msg.session=t.dataset.msgsession;st.tab="messages";}
+  else if(t.dataset.session!=null){st.session=t.dataset.session;st.tab="sessions";}
+  else if(t.dataset.user!=null){st.user=t.dataset.user||null;st.session=null;st.tab="sessions";}
+  else if(t.dataset.back){st.session=null;}
   render();
+  window.scrollTo(0,0);
 });
-// Delegated: `renderControls` replaces this input's markup on every paint, so a listener bound to
-// the element itself would not survive the first change.
-// Delegated: renderControls replaces this markup on every paint, so a listener bound to the element
-// itself would not survive the first change. An end that crosses the other is CLAMPED rather than
-// rejected — dragging `from` past `to` should move the window, not silently do nothing.
 document.addEventListener("change",(e)=>{
-  const id=e.target && e.target.id;
-  if(id!=="dfrom" && id!=="dto") return;
-  const v=e.target.value; if(!/^\d{4}-\d{2}-\d{2}$/.test(v)) return;
-  if(id==="dfrom"){ st.from=v; if(st.to<v) st.to=v; }
-  else            { st.to=v;   if(st.from>v) st.from=v; }
-  render();
+  const id=e.target.id;
+  if(id==="server"){st.server=e.target.value;st.msg.user=null;st.msg.session=null;st.user=null;st.session=null;if($("key").value.trim())reload();}
+  else if(id==="preset"){st.preset=e.target.value;$("dates").hidden=st.preset!=="custom";
+    if(st.preset==="custom"){if(!st.to){st.to=today();st.from=shift(29);}$("dfrom").value=st.from;$("dto").value=st.to;}
+    if($("key").value.trim())reload();}
+  else if(id==="dfrom"||id==="dto"){
+    const v=e.target.value;if(!/^\d{4}-\d{2}-\d{2}$/.test(v))return;
+    if(id==="dfrom"){st.from=v;if(st.to<v){st.to=v;$("dto").value=v;}}else{st.to=v;if(st.from>v){st.from=v;$("dfrom").value=v;}}
+    reload();}
+  else if(id==="aud"){st.audience=e.target.value;if($("key").value.trim())reload();}
+  else if(id==="sgroup"){st.group=e.target.value;render();}
+  else if(id==="msort"){st.msg.sort=e.target.value;render();}
+  else if(id==="mrole"){st.msg.role=e.target.value;render();}
+  else if(id==="mmin"){st.msg.minLen=+e.target.value||0;render();}
+  else if(id==="msrc"){st.msg.source=e.target.value;render();}
 });
-$("go").addEventListener("click",()=>{persist();render();});
-$("key").addEventListener("keydown",(e)=>{if(e.key==="Enter"){persist();render();}});
+$("key").addEventListener("keydown",(e)=>{if(e.key==="Enter")$("go").click();});
 (function init(){
-  const s=JSON.parse(localStorage.getItem("aisance_dash")||"{}");
-  $("base").value=s.base||DEFAULT_BASE; $("key").value=s.key||"";
-  if(s.key) render(); else renderControls();
+  $("server").innerHTML=Object.entries(SERVERS).map(([k,v])=>`<option value="${k}">${esc(v.label)}</option>`).join("");
+  let saved={};try{saved=JSON.parse(store.get("aisance_admin")||"{}");}catch(e){}
+  if(saved.server&&SERVERS[saved.server])st.server=saved.server;
+  $("server").value=st.server;$("preset").value=st.preset;$("key").value=saved.key||"";
+  renderTabs();
+  if(saved.key)render();
 })();
 </script>
 </body>
